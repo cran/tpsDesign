@@ -1,0 +1,11 @@
+export(beta0, ccPower, ccSim, phaseI, plotCcPower, plotTpsPower, rmvhyper, tps, tpsPower, tpsSim)
+
+
+S3method(print,tpsSim)
+S3method(print,ccSim)
+S3method(print,tpsPower)
+S3method(print,ccPower)
+
+
+#export(beta0, ccPower, ccSim, phaseI, plot.ccPower, plot.tpsPower, print.tpsSim, print.tpsPower, print.ccPower, print.ccSim, summary.tpsSim, summary.tpsPower, summary.ccSim, summary.ccPower, rmvhyper, tps, tpsPower, tpsSim)
+
