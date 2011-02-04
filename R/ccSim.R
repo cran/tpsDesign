@@ -1,8 +1,9 @@
 ccSim <-
-function(B=1000,betaTruth,X,N,nCC,r,refDesign=1,alpha=.05,threshold=c(-Inf,Inf),digits=NULL,betaNames=NULL,monitor=NULL){
-
+function(B=1000,betaTruth,X,N,nCC,r,refDesign=1,
+                  alpha=.05,threshold=c(-Inf,Inf),digits=NULL,
+                  betaNames=NULL,monitor=NULL, NI=NULL){
+  
   beta <- betaTruth
-
   if(length(refDesign)!=1){
     print("Error: 'refDesign is not a single number")
     return(-1)
@@ -11,11 +12,11 @@ function(B=1000,betaTruth,X,N,nCC,r,refDesign=1,alpha=.05,threshold=c(-Inf,Inf),
     print("Error: 'refDesign' is not positive")
     return(-1)
   }
-  
+
   if(length(r)==1){
     n0 <- round(nCC*r/(r+1))
     n1 <- nCC-n0
-    return(tpsSim(B=B,betaTruth=beta,X=X,N=N,strata=1,n0=n0,n1=n1,alpha=alpha,threshold=threshold,digits=digits,betaNames=betaNames,monitor=monitor))
+    return(tpsSim(B=B,betaTruth=beta,X=X,N=N,strata=1,n0=n0,n1=n1,alpha=alpha,threshold=threshold,digits=digits,betaNames=betaNames,monitor=monitor,NI=NI))
   }
   
   if(length(nCC)!=1){
@@ -26,7 +27,7 @@ function(B=1000,betaTruth,X,N,nCC,r,refDesign=1,alpha=.05,threshold=c(-Inf,Inf),
     print("Error: sample size is not positive")
     return(-1)
   }
-  
+
   if(min(X)<0)print("Error: invalid design matrix 'X'")
   if(min(r)<0)print("Error: invalid control-case ratio")
 
@@ -108,7 +109,21 @@ function(B=1000,betaTruth,X,N,nCC,r,refDesign=1,alpha=.05,threshold=c(-Inf,Inf),
     }
   }
 
-  
+  ## NI
+  if(!is.null(NI[1])){
+    if(length(NI)!=2){
+      print("Error: 'NI' is a pair of Phase I sample sizes for controls and cases")
+      return(-1)
+    }
+    if(min(NI)<0){
+      print("Error: sample size is not positive")
+      return(-1)
+    }
+  }else{
+    cohort <- TRUE
+  }
+
+
   r <- c(refDesign,sort(unique(setdiff(r,refDesign))))
   num.des <- length(r)
   beta.0.ind <- which(beta==0)
@@ -132,14 +147,13 @@ function(B=1000,betaTruth,X,N,nCC,r,refDesign=1,alpha=.05,threshold=c(-Inf,Inf),
   #1st design
   n0 <- round(nCC*r[1]/(r[1]+1))
   n1 <- nCC-n0
-  result1 <- ccSimOne(B=B,betaTruth=beta,X=X,N=N,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor)
+  result1 <- ccSimOne(B=B,betaTruth=beta,X=X,N=N,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor,NI=NI)
   print("Design 1 complete.")
 
-  
   #2nd design
   n0 <- round(nCC*r[2]/(r[2]+1))
   n1 <- nCC-n0
-  result2 <- ccSimOne(B=B,betaTruth=beta,X=X,N=N,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor)
+  result2 <- ccSimOne(B=B,betaTruth=beta,X=X,N=N,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor,NI=NI)
   print("Design 2 complete.")
   result <- list(result1,result2)
   
@@ -147,12 +161,11 @@ function(B=1000,betaTruth,X,N,nCC,r,refDesign=1,alpha=.05,threshold=c(-Inf,Inf),
     for(i in 3:num.des){
       n0 <- round(nCC*r[i]/(r[i]+1))
       n1 <- nCC-n0
-      result[[i]] <- ccSimOne(B=B,betaTruth=beta,X=X,N=N,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor)
+      result[[i]] <- ccSimOne(B=B,betaTruth=beta,X=X,N=N,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor,NI=NI)
       print(paste("Design",i,"complete."))
     }
   }
  
-
   ##mean
   colname <- betaNames
   rowname <- c("CD",paste("CC:",r[1],"(ref)"),paste("CC:",r[-1]))
@@ -303,6 +316,9 @@ function(B=1000,betaTruth,X,N,nCC,r,refDesign=1,alpha=.05,threshold=c(-Inf,Inf),
     output$digits <- 0
   }else{
     output$digits <- digits
+  }
+  if(!is.null(NI[1])){
+    output$NI <- NI
   }
   output$mean <- matrix.mean
   output$bias.mean <- matrix.bias

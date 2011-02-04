@@ -1,6 +1,7 @@
 tpsSimAllOne <-
 function(B, betaTruth, X, N, strata, n0, n1,
-                         alpha, threshold=c(-Inf,Inf), monitor=NULL){
+                         alpha, threshold=c(-Inf,Inf),
+                         monitor=NULL,cohort=TRUE, NI=NULL){
 
   beta <- betaTruth
   ## valid strata
@@ -18,7 +19,7 @@ function(B, betaTruth, X, N, strata, n0, n1,
   for(i in 1:B){
     if(i %% monitor==0)
       cat("Repetition",i,"of",B,"for a two-phase design complete\n") 
-    result[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1)
+    result[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,cohort=cohort,NI=NI)
   }
   ##NA
   na <- numeric(12)

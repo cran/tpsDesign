@@ -1,12 +1,31 @@
 tpsSimAll <-
 function(B=1000,betaTruth,X,N,nII,interaction=NULL, ccDesign=NULL,
-                       alpha=.05,threshold=c(-Inf,Inf),digits=NULL, betaNames=NULL, referent=2, monitor=NULL){
+                      alpha=.05,threshold=c(-Inf,Inf),digits=NULL,
+                      betaNames=NULL, referent=2, monitor=NULL,
+                      cohort=TRUE,NI=NULL){
   beta <- betaTruth
   ##possible errors
   if(min(N,nII)<0){
     print("Error: sample size is not positive")
     return(-1)
   }
+
+  ## case-control option
+  if(cohort!=TRUE){
+    if(length(NI)!=2){
+      print("Error: 'NI' is a pair of Phase I sample sizes for controls and cases")
+      return(-1)
+    }
+    if(min(NI)<0){
+      print("Error: sample size is not positive")
+      return(-1)
+    }
+    if(is.null(NI[1])){
+      print("Warning: Phase I case-control sample size is not specified")
+      cohort <- TRUE
+    }
+  } 
+
   if(min(X)<0)print("Error: invalid design matrix 'X'")
   if(length(nII)!=2){
     print("Error: 'nII' is not a pair of two numbers")
@@ -189,7 +208,7 @@ function(B=1000,betaTruth,X,N,nII,interaction=NULL, ccDesign=NULL,
   n0 <- round(rep(nII[1],times=num.grp)/num.grp)
   n1 <- round(rep(nII[2],times=num.grp)/num.grp)
   print(paste("There are",(num.des+1),"two-phase designs to simulate."))
-  result1 <- tpsSimAllOne(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor)
+  result1 <- tpsSimAllOne(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor,cohort=cohort,NI=NI)
   print("Design 1 complete.")
   
   #2nd design
@@ -204,7 +223,7 @@ function(B=1000,betaTruth,X,N,nII,interaction=NULL, ccDesign=NULL,
   strata.name <- c(strata.name,strata.name.i)
   n0 <- round(rep(nII[1],times=num.grp)/num.grp)
   n1 <- round(rep(nII[2],times=num.grp)/num.grp)
-  result2 <- tpsSimAllOne(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor)
+  result2 <- tpsSimAllOne(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor,cohort=cohort,NI=NI)
   print("Design 2 complete.")
   result <- list(result1,result2)
   
@@ -221,12 +240,12 @@ function(B=1000,betaTruth,X,N,nII,interaction=NULL, ccDesign=NULL,
       strata.name <- c(strata.name,strata.name.i)
       n0 <- round(rep(nII[1],times=num.grp)/num.grp)
       n1 <- round(rep(nII[2],times=num.grp)/num.grp)
-      result[[i]] <- tpsSimAllOne(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor)
+      result[[i]] <- tpsSimAllOne(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,monitor=monitor,cohort=cohort,NI=NI)
       print(paste("Design",i,"complete."))
     }
   }
   result.cc <- NULL
-  result.cc <- ccSimOne(B=B,betaTruth=beta,X=X,N=N,n0=ccDesign[1],n1=ccDesign[2],alpha=alpha,threshold=threshold,monitor=monitor)
+  result.cc <- ccSimOne(B=B,betaTruth=beta,X=X,N=N,n0=ccDesign[1],n1=ccDesign[2],alpha=alpha,threshold=threshold,monitor=monitor,NI=NI)
   print(paste("Design",(i+1),"complete."))
 
   
@@ -413,6 +432,10 @@ function(B=1000,betaTruth,X,N,nII,interaction=NULL, ccDesign=NULL,
     output$digits <- 0
   }else{
     output$digits <- digits
+  }
+  output$cohort <- cohort
+  if(cohort==TRUE){
+    output$NI <- NI
   }
   output$mean <- matrix.mean
   output$bias.mean <- matrix.bias

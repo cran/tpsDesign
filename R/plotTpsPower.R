@@ -8,11 +8,20 @@ function(x,coefNum=1, yAxis=seq(from=0, to=100, by=20), xAxis=NULL, main=NULL, l
   }
   
   ##check coefNum
-  if(!is.element(coefNum,1:length(x$beta))){
+  if (length(intersect(coefNum, 1:length(x$beta))) == 0) {
     print("Error: 'coefNum' is invalid")
+    invisible()
     return(-1)
   }
-   
+  if(is.element(coefNum,which(x$beta==0))){
+    print("Error: the specified element of 'BetaTruth' is zero")
+    invisible()
+    return(-1)
+  }
+  sub.beta <- x$beta[1:coefNum]
+  num.zero <- length(sub.beta[sub.beta==0])
+  coefNum <- coefNum-num.zero
+
   ##
   if(is.null(xAxis)) xAxis <- x$nII
   if(is.null(title)) title <- paste("Power for", colnames(x$power)[coefNum])
@@ -32,7 +41,7 @@ function(x,coefNum=1, yAxis=seq(from=0, to=100, by=20), xAxis=NULL, main=NULL, l
     powerML <- x$power[5, coefNum]
   }   
   
-  ##
+  
   plot(range(xAxis), range(yAxis), xlab="Phase II sample size, n", ylab="Power", main=main, type="n", axes=FALSE)
   axis(1, at=xAxis)
   axis(2, at=yAxis)
@@ -42,19 +51,24 @@ function(x,coefNum=1, yAxis=seq(from=0, to=100, by=20), xAxis=NULL, main=NULL, l
   lines(x$nII, powerWL, lty=1, lwd=2)
   lines(x$nII, powerPL, lty=2, lwd=2)
   lines(x$nII, powerML, lty=3, lwd=2)
-  ##
-  if(includeCC == TRUE) lines(x$nII, powerCC, lty=4, lwd=2)
-  ##
-  if(is.null(legendXY)){
-    if(includeCC==FALSE){
-      legendXY <- c(max(xAxis) - ((max(xAxis)-min(xAxis)) * 0.2), min(yAxis) + ((max(yAxis)-min(yAxis))*0.18))
-    }else{
-      legendXY <- c(max(xAxis) - ((max(xAxis)-min(xAxis)) * 0.2), min(yAxis) + ((max(yAxis)-min(yAxis))*0.2))
+  
+
+  if (includeCC == TRUE) 
+    lines(x$nII, powerCC, lty = 4, lwd = 2)
+  if (is.null(legendXY)) {
+    if (includeCC == FALSE) {
+      legendXY <- c(max(xAxis) - ((max(xAxis) - min(xAxis)) * 0.2),
+                    min(yAxis) + ((max(yAxis) - min(yAxis)) * 0.18))
+    }
+    else {
+      legendXY <- c(max(xAxis) - ((max(xAxis) - min(xAxis)) * 0.2),
+                    min(yAxis) + ((max(yAxis) - min(yAxis)) * 0.2))
     }
   }
+  if(is.null(legendXY)) legendXY <- c(max(xAxis) - ((max(xAxis)-min(xAxis)) * 0.2), min(yAxis) + ((max(yAxis)-min(yAxis))))
   if(includeCC == FALSE) legend(legendXY[1], legendXY[2], c("WL", "PL", "ML"), pch=c(2:4), lwd=c(2,2,2), lty=c(1:3))
   if(includeCC == TRUE) legend(legendXY[1], legendXY[2], c("WL", "PL", "ML", "CC"), pch=c(2:4,NA), lwd=c(2,2,2,2), lty=c(1:4))
-  ##
+  
   
   invisible()
 }

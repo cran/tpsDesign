@@ -1,7 +1,8 @@
 tpsSim <-
 function(B=1000, betaTruth, X, N, strata, n0=NULL, n1=NULL, nII=NULL, interaction=NULL,
-ccDesign=NULL, alpha=.05, threshold=c(-Inf,Inf),
-digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
+                   ccDesign=NULL, alpha=.05, threshold=c(-Inf,Inf),
+                   digits=NULL, betaNames=NULL,referent=2, monitor=NULL,
+                   cohort=TRUE, NI=NULL){
 
   beta <- betaTruth
   ## valid strata
@@ -20,7 +21,7 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     }
     return(tpsSimAll(B=B,betaTruth=beta,X=X,N=N,nII=nII,interaction=interaction,
                       ccDesign=ccDesign,alpha=alpha,threshold=threshold,digits=digits,
-                      referent=referent,monitor=monitor))
+                      referent=referent,monitor=monitor,cohort=cohort,NI=NI))
   }
   if(!is.null(nII[1]))print("Warning: 'nII' is not used")
   ## case-control or specific
@@ -36,6 +37,26 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     return(-1)
   }
 
+  ## case-control option
+  if(cohort!=TRUE){
+    if(length(NI)!=2){
+      print("Error: 'NI' is a pair of Phase I sample sizes for controls and cases")
+      return(-1)
+    }
+    if(min(NI)<0){
+      print("Error: sample size is not positive")
+      return(-1)
+    }
+    if(is.null(NI[1])){
+      print("Warning: Phase I case-control sample size is not specified")
+      cohort <- TRUE
+    }
+  }
+  if(!is.null(NI[1])&cohort==TRUE){
+    print("Warning: 'cohort' option was chosen")
+  }
+         
+  
   ##valid X
   if(min(X)<0)print("Error: invalid design matrix 'X'")
 
@@ -169,7 +190,7 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     for(i in 1:B){
       if(i %% monitor==0)
         cat("Repetition",i,"of",B,"for a two-phase design complete\n") 
-      result[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,var.name=var.name)
+      result[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,var.name=var.name,cohort=cohort,NI=NI)
     }
     
     ##simulation for case-control
@@ -180,7 +201,7 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     for(i in 1:B){
       if(i %% monitor==0)
         cat("Repetition",i,"of",B,"for a case-control design complete\n") 
-      result.cc[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=1,n0=ccDesign[1],n1=ccDesign[2])
+      result.cc[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=1,n0=ccDesign[1],n1=ccDesign[2],cohort=cohort,NI=NI)
     }
     ##NA
     na <- numeric(12)
@@ -348,7 +369,7 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     matrix.bias[2,1] <- NA
     
     if(num.null.0!=0){
-      matrix.pctbias <- mat.or.vec(nc=num.null.0,nr=5)
+      matrix.pctbias <- as.matrix(mat.or.vec(nc=num.null.0,nr=5))
       rownames(matrix.pctbias) <- c("CD","CC","WL","PL","ML")
       if(!length(beta.0.ind)){
         colnames(matrix.pctbias) <- cov.name
@@ -378,7 +399,7 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     matrix.bias.med <- matrix.bias.med-matrix.beta
     
     if(num.null.0!=0){
-      matrix.pctbias.med <- mat.or.vec(nc=num.null.0,nr=5)
+      matrix.pctbias.med <- as.matrix(mat.or.vec(nc=num.null.0,nr=5))
       rownames(matrix.pctbias.med) <- c("CD","CC","WL","PL","ML")
       if(!length(beta.0.ind)){
         colnames(matrix.pctbias.med) <- cov.name
@@ -448,7 +469,7 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     matrix.covprob[2,1] <- NA
     
     if(num.null.0!=0){
-      matrix.power <- mat.or.vec(nc=num.null.0,nr=5)
+      matrix.power <- as.matrix(mat.or.vec(nc=num.null.0,nr=5))
       rownames(matrix.power) <- c("CD","CC","WL","PL","ML")
       if(!length(beta.0.ind)){
         colnames(matrix.power) <- cov.name
@@ -487,6 +508,10 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     }else{
       output$digits <- digits
     }
+    output$cohort <- cohort
+    if(cohort!=TRUE){
+      output$NI <- NI
+    }
     output$mean <- matrix.mean
     output$bias.mean <- matrix.bias
     output$pct.bias.mean <- matrix.pctbias
@@ -524,13 +549,16 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
         cc.same <- 1
       }
     }
+    if(!is.null(NI[1])){
+      cohort <- FALSE
+    }
     
     ##simulation 
     result <- mat.or.vec(nr=dim.beta*4,nc=B)
     for(i in 1:B){
       if(i %% monitor==0)
         cat("Repetition",i,"of",B,"complete\n") 
-      result[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=1,n0=n0,n1=n1)
+      result[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=1,n0=n0,n1=n1,cohort=cohort,NI=NI)
     }
     
     ##simulation for case-control
@@ -541,7 +569,7 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     for(i in 1:B){
       if(i %% monitor==0)
         cat("Repetition",i,"of",B,"for a referent case-control design complete\n") 
-      result.cc[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=1,n0=ccDesign[1],n1=ccDesign[2])
+      result.cc[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=1,n0=ccDesign[1],n1=ccDesign[2],cohort=cohort,NI=NI)
     }
     
     ##NA
@@ -726,7 +754,7 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     matrix.bias[c(2,3),1] <- NA
     
     if(num.null.0!=0){
-      matrix.pctbias <- mat.or.vec(nc=num.null.0,nr=3)
+      matrix.pctbias <- as.matrix(mat.or.vec(nc=num.null.0,nr=3))
       rownames(matrix.pctbias) <- c("CD","C-C(ref)","Case-Control")
       if(!length(beta.0.ind)){
         colnames(matrix.pctbias) <- cov.name
@@ -750,7 +778,7 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     matrix.bias.med <- matrix.bias.med-matrix.beta
     
     if(num.null.0!=0){
-      matrix.pctbias.med <- mat.or.vec(nc=num.null.0,nr=3)
+      matrix.pctbias.med <- as.matrix(mat.or.vec(nc=num.null.0,nr=3))
       rownames(matrix.pctbias.med) <- c("CD","C-C(ref)","Case-Control")
       if(!length(beta.0.ind)){
         colnames(matrix.pctbias.med) <- cov.name
@@ -812,7 +840,7 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
     matrix.covprob[c(2,3),1] <- NA
     
     if(num.null.0!=0){
-      matrix.power <- mat.or.vec(nc=num.null.0,nr=3)
+      matrix.power <- as.matrix(mat.or.vec(nc=num.null.0,nr=3))
       rownames(matrix.power) <- c("CD","C-C(ref)","Case-Control")
       if(!length(beta.0.ind)){
         colnames(matrix.power) <- cov.name
@@ -865,6 +893,9 @@ digits=NULL, betaNames=NULL,referent=2, monitor=NULL){
       output$digits <- 0
     }else{
       output$digits <- digits
+    }
+    if(!is.null(NI[1])){
+      output$NI <- NI
     }
     output$mean <- matrix.mean
     output$bias.mean <- matrix.bias

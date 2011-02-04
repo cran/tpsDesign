@@ -11,7 +11,7 @@ Simulation function for case-control study designs.
 \usage{
 ccSim(B=1000, betaTruth, X, N, nCC, r, refDesign=1, alpha=0.05,
       threshold=c(-Inf, Inf), digits=NULL, betaNames=NULL,
-      monitor=NULL)
+      monitor=NULL,NI=NULL)
 }
 \arguments{
   \item{B}{
@@ -49,7 +49,13 @@ ccSim(B=1000, betaTruth, X, N, nCC, r, refDesign=1, alpha=0.05,
 }
 \item{monitor}{
 	Numeric value indicating how often \code{ccSim()} reports real-time progress on the simulation, as the \code{B} datasets are generated and evaluated. The default of \code{NULL} indicates no output.
-}
+      }
+\item{NI}{
+    A pair of integers providing the outcome-specific phase I sample
+    sizes when the phase I data are drawn as a case-control sample. The
+    first element corresponds to the controls and the second to the
+    cases.
+  }
 }
 \details{
 A simulation study is performed to evaluate the operating

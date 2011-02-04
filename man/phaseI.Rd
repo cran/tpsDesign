@@ -8,7 +8,7 @@ Expected phase I stratification
   \code{phaseI()} provides the expected phase I counts, based on a pre-specified population and outcome model. If phase II sample sizes are provided, the (expected) phase II sampling probabilities are also reported.
 }
 \usage{
-phaseI(betaTruth, X, N, strata, n0=NULL, n1=NULL, digits=NULL)
+phaseI(betaTruth, X, N, NI=NULL, strata, n0=NULL, n1=NULL, digits=NULL)
 }
 \arguments{
 	\item{betaTruth}{
@@ -20,7 +20,14 @@ phaseI(betaTruth, X, N, strata, n0=NULL, n1=NULL, digits=NULL)
   \item{N}{
     A numeric vector providing the sample size for each row of the design matrix, \code{X}.
 }
-  \item{strata}{
+\item{NI}{
+    A pair of integers providing the outcome-specific phase I sample
+    sizes when the phase I data are drawn as a case-control sample. The
+    first element corresponds to the controls and the second to the
+    cases.
+  }
+
+\item{strata}{
     A numeric vector indicating which columns of the design matrix, \code{X}, are used to form the phase I stratification variable. \code{strata=1} specifies the intercept and is, therefore, equivalent to a case-control study.
 }
   \item{n0}{
@@ -32,6 +39,7 @@ phaseI(betaTruth, X, N, strata, n0=NULL, n1=NULL, digits=NULL)
   \item{digits}{
     Integer indicating the precision to be used for the reporting of the (expected) sampling probabilities
 }
+
 }
 \author{
   Takumi Saegusa, Sebastien Haneuse

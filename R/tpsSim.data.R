@@ -1,5 +1,5 @@
 tpsSim.data <-
-function(betaTruth, X, N, strata, n0, n1){
+function(betaTruth, X, N, strata, n0, n1, cohort=TRUE, NI=NULL){
 
   beta <- betaTruth
   strata <- sort(strata)
@@ -37,6 +37,12 @@ function(betaTruth, X, N, strata, n0, n1){
   Death <- rbinom(n=rep(x=1,times=length(N)),size=N, prob=prob)
   Alive <- N-Death
 
+  ## case-control option
+  if(cohort!=TRUE){
+    Alive <- round(Alive/sum(Alive)*NI[1])
+    Death <- round(Death/sum(Death)*NI[2]) 
+  }
+  
   ## stratified indicator
   ## typically 1*level at X1 + 10*level at X2 etc.
   st.ind <- X[,strata[1]]
@@ -54,7 +60,7 @@ function(betaTruth, X, N, strata, n0, n1){
       }
     }
   }
-  
+      
   ## match up strata indicator and sample size assignment using reverse lexicographic order
   ## order of (0 10 20 1 11 21) is ( 1 2 3 4 5 6)
   lev <- unique(sort(st.ind))

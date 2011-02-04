@@ -1,10 +1,10 @@
 tpsSim.fit <-
-function(betaTruth, X, N, strata, n0, n1, var.name=NULL){
+function(betaTruth, X, N, strata, n0, n1, var.name=NULL,cohort=TRUE,NI=NULL){
 
   beta <- betaTruth
   strata <- sort(strata)
   ##simulate data
-  data.sim <- tpsSim.data(betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1)
+  data.sim <- tpsSim.data(betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,cohort=cohort,NI=NI)
   if(data.sim[[1]][1]==-1) return(-1)
   N.control <- data.sim$N.control
   N.case <- data.sim$N.case
@@ -48,7 +48,7 @@ function(betaTruth, X, N, strata, n0, n1, var.name=NULL){
   if(length(lev)!=1){ #non CC
     ## estimates using all phase I data
     dim.beta <- length(beta)
-    fit <- glm(formula=formI, data=data.sim, family=binomial)
+    fit <- try(glm(formula=formI, data=data.sim, family=binomial))
     if(class(fit)[1]== "try-error"){
       beta.hat <- rep(NA, dim.beta)
       beta.hat.sd <- rep(NA, dim.beta)
@@ -61,7 +61,7 @@ function(betaTruth, X, N, strata, n0, n1, var.name=NULL){
     op <- options()
     options(warn=-1)
     fitWL <- try(tps(formula=formII, data=data.sim, nn0=N.control, nn1=N.case,
-                     group=data.sim$Strata, method="WL"),silent=TRUE)
+                     group=data.sim$Strata, method="WL",cohort=cohort),silent=TRUE)
     options(op)
     if(class(fitWL) == "try-error"){
       beta.hat.WL <- rep(NA, dim.beta)
@@ -73,7 +73,7 @@ function(betaTruth, X, N, strata, n0, n1, var.name=NULL){
     }
     ## PL
     fitPL <- try(tps(formula=formII, data=data.sim, nn0=N.control, nn1=N.case,
-                     group=data.sim$Strata, method="PL"),silent=TRUE)  
+                     group=data.sim$Strata, method="PL",cohort=cohort),silent=TRUE)  
     if(class(fitPL) == "try-error"){
       beta.hat.PL <- rep(NA, dim.beta)
       beta.hat.sd.PL <- rep(NA, dim.beta)
@@ -84,7 +84,7 @@ function(betaTruth, X, N, strata, n0, n1, var.name=NULL){
     }
     ## ML
     fitML <- try(tps(formula=formII, data=data.sim, nn0=N.control, nn1=N.case,
-                     group=data.sim$Strata, method="ML"),silent=TRUE)  
+                     group=data.sim$Strata, method="ML",cohort=cohort),silent=TRUE)  
     if(class(fitML) == "try-error"){
       beta.hat.ML <- rep(NA, dim.beta)
       beta.hat.sd.ML <- rep(NA, dim.beta)
@@ -99,7 +99,7 @@ function(betaTruth, X, N, strata, n0, n1, var.name=NULL){
   }else{ # CC
     ## estimates using all phase I data
     dim.beta <- length(beta)
-    fit <- glm(formula=formI, data=data.sim, family=binomial)
+    fit <- try(glm(formula=formI, data=data.sim, family=binomial))
     if(class(fit)[1]== "try-error"){
       beta.hat <- rep(NA, dim.beta)
       beta.hat.sd <- rep(NA, dim.beta)

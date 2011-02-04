@@ -1,5 +1,8 @@
 tpsPower <-
-function(B=1000,betaTruth,X,N,strata,nII,alpha=.05,threshold=c(-Inf,Inf),digits=NULL,betaNames=NULL,monitor=NULL){
+function(B=1000,betaTruth,X,N,strata,nII,alpha=.05,
+                     threshold=c(-Inf,Inf),digits=NULL,
+                     betaNames=NULL,monitor=NULL,
+                     cohort=TRUE, NI=NULL){
 
   beta <- betaTruth
   ##possible errors
@@ -17,6 +20,40 @@ function(B=1000,betaTruth,X,N,strata,nII,alpha=.05,threshold=c(-Inf,Inf),digits=
     print("Error: invalid dimensions of 'N' and 'X'")
     return(-1)
   }
+  if(cohort!=TRUE){
+    if(is.null(NI)){
+      print("Error: Phase I case-control sample size is not specified")
+      return(-1)
+    }
+    if(length(NI)!=2){
+      print("Error: 'NI' is a pair of Phase I sample sizes for controls and cases")
+      return(-1)
+    }
+    if(min(NI)<0){
+      print("Error: sample size is not positive")
+      return(-1)
+    }
+  } 
+
+  ## case-control option
+  if(cohort!=TRUE){
+    if(length(NI)!=2){
+      print("Error: 'NI' is a pair of Phase I sample sizes for controls and cases")
+      return(-1)
+    }
+    if(min(NI)<0){
+      print("Error: sample size is not positive")
+      return(-1)
+    }
+    if(is.null(NI[1])){
+      print("Warning: Phase I case-control sample size is not specified")
+      cohort <- TRUE
+    }
+  } 
+  if(!is.null(NI[1])&cohort==TRUE){
+    print("Warning: 'cohort' option was chosen")
+  }
+
   
   ## valid beta
   nlevs <- 1
@@ -27,8 +64,6 @@ function(B=1000,betaTruth,X,N,strata,nII,alpha=.05,threshold=c(-Inf,Inf),digits=
     print("Error: invalid dimension of 'beta'")
     return(-1)
   }
-  
-
   
   if(!is.null(threshold[1])){
     if(length(threshold)!=2){
@@ -47,7 +82,6 @@ function(B=1000,betaTruth,X,N,strata,nII,alpha=.05,threshold=c(-Inf,Inf),digits=
       return(-1)
     }
   }
-
 
   ## variable names, beta names
   if(!is.null(colnames(X))){
@@ -119,7 +153,7 @@ function(B=1000,betaTruth,X,N,strata,nII,alpha=.05,threshold=c(-Inf,Inf),digits=
   n0 <- round(rep(nII[1]/2,times=num.grp)/num.grp)
   n1 <- round(rep(nII[1]/2,times=num.grp)/num.grp)
   print(paste("There are",num.nii,"two-phase designs to simulate"))     
-  result1 <- tpsSim(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,digits=digits,betaNames=betaNames,monitor=monitor)
+  result1 <- tpsSim(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,digits=digits,betaNames=betaNames,monitor=monitor,cohort=cohort,NI=NI)
   print("Design 1 complete")
   if(num.nii==1){
     output <- NULL
@@ -145,7 +179,7 @@ function(B=1000,betaTruth,X,N,strata,nII,alpha=.05,threshold=c(-Inf,Inf),digits=
   #2nd design
   n0 <- round(rep(nII[2]/2,times=num.grp)/num.grp)
   n1 <- round(rep(nII[2]/2,times=num.grp)/num.grp)
-  result2 <- tpsSim(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,digits=digits,betaNames=betaNames,monitor=monitor)
+  result2 <- tpsSim(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,digits=digits,betaNames=betaNames,monitor=monitor,cohort=cohort,NI=NI)
   print("Design 2 complete")
   result <- list(result1,result2)
   
@@ -153,7 +187,7 @@ function(B=1000,betaTruth,X,N,strata,nII,alpha=.05,threshold=c(-Inf,Inf),digits=
     for(i in 3:num.nii){
       n0 <- round(rep(nII[i]/2,times=num.grp)/num.grp)
       n1 <- round(rep(nII[i]/2,times=num.grp)/num.grp)
-      result[[i]] <- tpsSim(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,digits=digits,betaNames=betaNames,monitor=monitor)
+      result[[i]] <- tpsSim(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,digits=digits,betaNames=betaNames,monitor=monitor,cohort=cohort,NI=NI)
       print(paste("Design",i,"complete."))
     }
   }
@@ -215,6 +249,10 @@ function(B=1000,betaTruth,X,N,strata,nII,alpha=.05,threshold=c(-Inf,Inf),digits=
   output$N <- N
   output$strata <- strata
   output$nII <- as.numeric(nII)
+  output$cohort <- cohort
+  if(cohort!=TRUE){
+    output$NI <- NI
+  }
   output$alpha <- alpha
   output$threshold <- threshold
   if(is.null(digits)){

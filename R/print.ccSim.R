@@ -5,7 +5,12 @@ function(x,...,digits=-1){
     else digits <- x$digits
   }
   cat("Number of simulations, B:",x$B,"\n")
-  cat("Sample size at Phase I:",sum(x$N),"\n")
+  if(is.null(x$NI[1])){
+    cat("Sample size at Phase I:",sum(x$N),"\n")
+  }else{
+    cat("Samle size at Phase I for controls:",x$NI[1],"\n")
+    cat("Samle size at Phase I for cases:",x$NI[2],"\n")
+  }
   cat("Sample size at Phase II, nCC:",x$nCC,"\n")
   cat("'True' regression coefficients, betaTruth:",x$beta,"\n")
   cat("\n")

@@ -10,7 +10,7 @@
 \usage{
 ccPower(B=1000, betaTruth, X, N, nCC, r, alpha=0.05,
         threshold=c(-Inf, Inf), digits=NULL, betaNames=NULL,
-        monitor=NULL)
+        monitor=NULL, NI=NULL)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -46,7 +46,14 @@ ccPower(B=1000, betaTruth, X, N, nCC, r, alpha=0.05,
 }
 \item{monitor}{
 	Numeric value indicating how often \code{ccPower()} reports real-time progress on the simulation, as the \code{B} datasets are generated and evaluated. The default of \code{NULL} indicates no output.
-}
+      }
+ \item{NI}{
+    A pair of integers providing the outcome-specific phase I sample
+    sizes when the phase I data are drawn as a case-control sample. The
+    first element corresponds to the controls and the second to the
+    cases.
+  }
+     
 }
 \details{
 	A simulation study is conducted to evaluate statistical power for the MLE of a logistic regression model, based on the case-control design. The overall simulation approach is the same as that described in \code{\link{ccSim}}. Power is estimated as the proportion of simulated datasets for which a hypothesis test of no effect is rejected. Each hypothesis test is performed using the generic \code{\link{glm}} function.

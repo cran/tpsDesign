@@ -1,17 +1,23 @@
 ccSimOne <-
 function(B=1000, betaTruth, X, N, n0, n1,
-                    alpha=.05, threshold=c(-Inf,Inf),monitor=NULL){
+                    alpha=.05, threshold=c(-Inf,Inf),monitor=NULL,
+                    NI=NULL){
   
   beta <- betaTruth
   dim.beta <- length(beta)
     
+  if(!is.null(NI[1])){
+    cohort <- FALSE
+  }else{
+    cohort <- TRUE
+  }
   
   ##simulation 
   result <- mat.or.vec(nr=dim.beta*4,nc=B)
   for(i in 1:B){
     if(i %% monitor==0)
       cat("Repetition",i,"of",B,"complete\n") 
-    result[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=1,n0=n0,n1=n1)
+    result[,i] <- tpsSim.fit(betaTruth=beta,X=X,N=N,strata=1,n0=n0,n1=n1,cohort=cohort,NI=NI)
   }
   
   

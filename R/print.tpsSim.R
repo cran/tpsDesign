@@ -5,9 +5,19 @@ function(x,...,digits=-1,referent=NULL){
       if(x$digits==0)digits <- 2
       else digits <- x$digits
     }
+    if(x$cohort==TRUE){
+      cat("Cohort sampling\n")
+    }else{
+      cat("Case-control sampling\n")
+    }
     cat("Number of simulations:",x$B,"\n")
     cat("Phase I stratification variable:",colnames(x$X)[x$strata],"\n")
-    cat("Sample size at Phase I:",sum(x$N),"\n")
+    if(x$cohort==TRUE){
+      cat("Sample size at Phase I:",sum(x$N),"\n")
+    }else{
+      cat("Samle size at Phase I for controls:",x$NI[1],"\n")
+      cat("Samle size at Phase I for cases:",x$NI[2],"\n")
+    }
     cat("Sample size at Phase II for controls, n0:",x$n0,"\n")
     cat("Sample size at Phase II for cases, n1:",x$n1,"\n")
     cat("Sample sizes for a referent case-control design, ccDesign:",x$ccDesign,"\n")
@@ -76,7 +86,12 @@ function(x,...,digits=-1,referent=NULL){
     
     cat("Number of simulations, B:",x$B,"\n")
     cat("Case-control:\n")
-    cat("Sample size at Phase I:",sum(x$N),"\n")
+    if(is.null(x$NI[1])){
+      cat("Sample size at Phase I:",sum(x$N),"\n")
+    }else{
+      cat("Samle size at Phase I for controls:",x$NI[1],"\n")
+      cat("Samle size at Phase I for cases:",x$NI[2],"\n")
+    }
     cat("Sample size for controls, n0:",x$n0,"\n")
     cat("Sample size for cases, n1:",x$n1,"\n")
     if(nrow(x$mean)==3){
