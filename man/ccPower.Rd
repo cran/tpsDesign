@@ -1,5 +1,5 @@
 \name{ccPower}
-\Rdversion{1.1}
+\Rdversion{1.2}
 \alias{ccPower}
 \title{
 	Simulation-based estimation of power for the case-control design
@@ -76,7 +76,7 @@ ccPower(B=1000, betaTruth, X, N, nCC, r, alpha=0.05,
 \note{
 	A generic print method provides formatted output of the results.
 
-	A generic plot function \code{\link{plotCcPower}} provides plots of powers against different sample sizes for each estimate of a regression coefficient.
+	A generic plot function \code{\link{plotPower}} provides plots of powers against different sample sizes for each estimate of a regression coefficient.
 }
 \references{
   Prentice, R. and Pyke, R. (1979) "Logistic disease incidence models and case-control studies." Biometrika 66:403-411.
@@ -96,14 +96,14 @@ betaNamesM <- c("Int", "Age1", "Age2", "Sex", "Race")
 
 ## Power for a single CC design
 
-\dontrun{ccResult1 <- ccPower(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, r=0.5,
+\dontrun{ccResult1 <- ccPower(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, r=1,
                      nCC=500, betaNames=betaNamesM)
 ccResult1}
 
 ## Power for the CC design, based on a balanced design with 
 ## various sample sizes
 
-\dontrun{ccResult2 <- ccPower(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, r=0.5,
+\dontrun{ccResult2 <- ccPower(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, r=1,
 nCC=seq(from=100, to=500, by=50), betaNames=betaNamesM)
 ccResult2
 }
@@ -117,7 +117,7 @@ newBetaM[1]   <- beta0(betaX=newBetaM[-1], X=XM, N=Ohio$N,
 rhoY=sum(Ohio$Death)/sum(Ohio$N))
 
 \dontrun{ccResult3 <- ccPower(B=1000, betaTruth=newBetaM, X=XM, N=Ohio$N,
-                     r=0.5, nCC=seq(from=100, to=500, by=50),
+                     r=1, nCC=seq(from=100, to=500, by=50),
                      betaNames=betaNamesM)
 ccResult3}
 }

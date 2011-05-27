@@ -19,7 +19,7 @@ function(nn0, nn1, x, N, case, group, cohort, alpha)
 	lp <-  - ofs
 	pw <- rep(1, length(case))	
 	#  Fitting model using standard GLM procedure
-	m <- glm(cbind(case, N - case) ~ -1 + x + offset(ofs), family = binomial, weights = pw, x = TRUE, control = glm.control(epsilon = 9.9999999999999995e-07, maxit = 20))
+	m <- glm(cbind(case, N - case) ~ -1 + x + offset(ofs), family = binomial, weights = pw, x = T, control = glm.control(epsilon = 9.9999999999999995e-07, maxit = 20))
 	fv <- m$fitted.values
 	nhat0 <- apply(strt.id * (1 - fv) * N, 2, sum)	
 	#  Within group sum of fitted values for controls

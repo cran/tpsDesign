@@ -1,5 +1,5 @@
 \name{tps}
-\Rdversion{1.1}
+\Rdversion{1.2}
 \alias{tps}
 \title{
 	Estimation for two-phase designs.

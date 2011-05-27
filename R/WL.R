@@ -28,7 +28,7 @@ function(nn0, nn1, x, N, case, group, cohort, alpha)
 	lp <- rep(0, length(case))
 	z <- rep(0, length(case))
 	z[case == 1] <- Nw[case == 1]
-	m <- glm(cbind(z, Nw - z) ~ -1 + x + offset(ofs), family = binomial, x=TRUE, 
+	m <- glm(cbind(z, Nw - z) ~ -1 + x + offset(ofs), family = binomial, x=T, 
 	         control = glm.control(epsilon = 9.9999999999999995e-07, maxit = 20))
   #  weights=pw, start = lp, 
 	uj0 <-  - t(m$x) %*% (strt.id * (1 - case) * m$fitted.values * N)	

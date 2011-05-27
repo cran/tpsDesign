@@ -2,8 +2,8 @@ Package: tpsDesign
 Type: Package
 Title: Design and analysis of two-phase sampling and case-control
         studies
-Version: 1.1
-Date: 2011-02-04
+Version: 1.2
+Date: 2011-05-27
 Author: Takumi Saegusa, Sebastien Haneuse, Nilanjan Chaterjee, Norman
         Breslow
 Maintainer: Takumi Saegusa <tsaegusa@uw.edu>
@@ -14,6 +14,6 @@ Description: The tpsDesign serves for planning a two-phase design and a
         regression model.
 License: GPL (>= 3)
 LazyLoad: yes
-Packaged: 2011-02-05 05:47:33 UTC; tsaegusa
+Packaged: 2011-05-27 13:11:26 UTC; sebastienhaneuse
 Repository: CRAN
-Date/Publication: 2011-02-10 08:24:13
+Date/Publication: 2011-05-28 15:29:08

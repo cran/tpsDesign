@@ -1,5 +1,5 @@
 \name{tpsSim}
-\Rdversion{1.1}
+\Rdversion{1.2}
 \alias{tpsSim}
 \title{
 Simulation function for two-phase study designs.

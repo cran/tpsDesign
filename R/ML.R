@@ -6,7 +6,7 @@ function(nn0, nn1, x, N, case, group, cohort, alpha, maxiter = 100)
 # Newton-Rhapson  algorithm to solve the equations. Gradients as computed by
 # the authors were used to implement the NR algorithm.
 	iter <- 0
-	converge <- FALSE
+	converge <- F
 	rerror <- 100
 	nntot0 <- sum(nn0)	# Phase I control Total
 	nntot1 <- sum(nn1)	# Phase I case Total
@@ -44,7 +44,7 @@ function(nn0, nn1, x, N, case, group, cohort, alpha, maxiter = 100)
 		ofs[1] <- ofs[1] - log(nntot1/nntot0) + log(alpha)
 	ofs <- ofs[grpa]
 	repp <- c(nn1 + nn0, N)	# Augmented binomial denominator
-	m <- glm(cbind(yy, repp - yy) ~ -1 + xx + offset(ofs), family = binomial, x = TRUE, control = glm.control(epsilon = 9.9999999999999995e-07, maxit = 20))
+	m <- glm(cbind(yy, repp - yy) ~ -1 + xx + offset(ofs), family = binomial, x = T, control = glm.control(epsilon = 9.9999999999999995e-07, maxit = 20))
 	gamm.schill <- as.vector(m$coef)
 	gamm0 <- gamm <- gamm.schill	# Initialize by Schill's estimates
 	errcode <- 0
@@ -64,7 +64,7 @@ function(nn0, nn1, x, N, case, group, cohort, alpha, maxiter = 100)
 		gamm0 <- gamm
 		iter <- iter + 1
 	}
-	if(iter < maxiter) converge <- TRUE	#cat("No of iterations=", iter, "\n")
+	if(iter < maxiter) converge <- T	#cat("No of iterations=", iter, "\n")
 	h <- lagrad(gamm0, nstrata, nobs, ncovs, nn1, nn0, n1a, n0a, ee, repp, grpa, n0, n1, xx, ofs)
 	fvv <- xx %*% gamm + ofs
 	fvv <- as.vector(exp(fvv)/(1 + exp(fvv)))

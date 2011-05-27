@@ -1,5 +1,5 @@
 \name{tpsPower}
-\Rdversion{1.1}
+\Rdversion{1.2}
 \alias{tpsPower}
 \title{
 	Simulation-based estimation of power for the two-phase study design
@@ -85,7 +85,7 @@ of \code{beta}:
 \note{
 	A generic print method provides formatted output of the results.
 
-	A generic plot function \code{\link{plotTpsPower}} provides plots of powers against different sample sizes for each estimate of a regression coefficient.
+	A generic plot function \code{\link{plotPower}} provides plots of powers against different sample sizes for each estimate of a regression coefficient.
 }
 \references{
   Prentice, R. and Pyke, R. (1979) "Logistic disease incidence models and case-control studies." Biometrika 66:403-411.
@@ -96,7 +96,7 @@ of \code{beta}:
   Takumi Saegusa, Sebastien Haneuse
 }
 \seealso{
-  \code{\link{plotTpsPower}}.
+  \code{\link{plotPower}}.
 }
 \examples{
 ##

@@ -1,5 +1,5 @@
 \name{ccSim}
-\Rdversion{1.1}
+\Rdversion{1.2}
 \alias{ccSim}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -42,7 +42,7 @@ ccSim(B=1000, betaTruth, X, N, nCC, r, refDesign=1, alpha=0.05,
 		An interval that specifies truncation of the Monte Carlo sampling distribution of the MLE.
 }
   \item{digits}{
-    Integer indicating the precision to be used for the output. Default of \code{NULL} corresponds to ???
+    Integer indicating the precision to be used for the output.
 }
   \item{betaNames}{
     An optional character vector of names for the regression coefficients, \code{betaTruth}.
@@ -138,7 +138,7 @@ estimator. The latter is generated using the following steps:
   Takumi Saegusa, Sebastien Haneuse
 }
 \seealso{
-  \code{\link{plotCcPower}}.
+  \code{\link{plotPower}}.
 }
 \examples{
 ##
@@ -154,14 +154,14 @@ betaNamesM <- c("Int", "Age1", "Age2", "Sex", "Race")
 
 \dontrun{
 ccResults1 <- ccSim(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N,
-                    nCC=500, r=0.5, betaNames=betaNamesM, monitor=100)
+                    nCC=500, r=1, betaNames=betaNamesM, monitor=100)
 ccResults1}
 
 ## Examining unbalanced case-control designs
 
 \dontrun{
 ccResults2 <- ccSim(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N,
-                    nCC=500, r=seq(from=0.1, to=0.9, by=0.2),
+                    nCC=500, r=c(0.25, 0.33, 0.5, 1, 2, 3, 4),
                     betaNames=betaNamesM, monitor=100)
 ccResults2}
 }
