@@ -1,4 +1,3 @@
 strReverse <-
-function(x)
-  sapply(lapply(strsplit(x, NULL), rev), paste, collapse="")
+function(x) sapply(lapply(strsplit(x, NULL), rev), paste, collapse="")
 

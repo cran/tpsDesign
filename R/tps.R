@@ -2,14 +2,14 @@ tps <-
 function(formula = formula(data), data = sys.parent(), nn0, nn1, group, contrasts = NULL, method = "PL", cohort = TRUE, alpha = 1)
 {
   call <- match.call()
-  m    <- match.call(expand = F)
+  m    <- match.call(expand = FALSE)
   m$method <- m$contrasts <- m$nn0 <- m$nn1 <- m$group <- m$cohort <- m$
   alpha  <- NULL
   m[[1]] <- as.name("model.frame")
   m      <- eval(m, sys.parent())
   Terms  <- attr(m, "terms")
   a      <- attributes(m)
-  Y      <- model.extract(m, response)
+  Y      <- model.extract(m, "response")
   X      <- model.matrix(Terms, m, contrasts)
 
   ## Potential Errors

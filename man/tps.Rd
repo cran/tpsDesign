@@ -1,5 +1,5 @@
 \name{tps}
-\Rdversion{1.2}
+\Rdversion{1.3}
 \alias{tps}
 \title{
 	Estimation for two-phase designs.
@@ -37,7 +37,7 @@ tps(formula=formula(data), data=sys.parent(), nn0, nn1, group,
   (Breslow and Holubkov, 1997; Scott and Wild, 1997).
 }
 \item{cohort}{
-  Logical flag. FALSE indicates that separate samples of "cases" and "controls" were drawn at phase I.
+    Logical flag. TRUE indicates phase I is drawn as a cohort; FALSE indicates phase I is drawn as a case-control sample.
 }
   \item{alpha}{
     Marginal odds of observing a case in the population. This is only used when cohort=F is specified and must be correctly specified in order to obtain a correct estimate of the intercept.

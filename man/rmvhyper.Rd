@@ -1,5 +1,5 @@
 \name{rmvhyper}
-\Rdversion{1.2}
+\Rdversion{1.3}
 \alias{rmvhyper}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{

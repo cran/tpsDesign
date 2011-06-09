@@ -1,187 +1,99 @@
 phaseI <-
-function (betaTruth, X, N, NI=NULL, strata = NULL, n0 = NULL, n1 = NULL, 
-    digits = NULL) 
+function(betaTruth,
+									 X,
+									 N,
+									 strata=NULL,
+									 nII0=NULL,
+									 nII1=NULL,
+									 cohort=TRUE,
+									 NI=NULL,
+									 digits=NULL)
 {
-  beta <- betaTruth
-  if (length(N) != nrow(X)) {
-    print("Error: invalid dimensions of 'N' and 'X'")
-    return(-1)
+	## Checks
+	##
+	problem <- coreChecks(betaTruth=betaTruth, X=X, N=N, betaNames=NULL)
+	if(problem != "")
+		stop(problem)
+ 	##
+	problem <- phaseIChecks(X=X, strata=strata, cohort=cohort, NI=NI, nII0=nII0, nII1=nII1)
+	if(problem != "")
+		stop(problem)
+
+	##
+  if(is.null(colnames(X)))
+  	colnames(X) <- c("Int", paste("V", 1:(ncol(X) - 1), sep = ""))
+	
+  ## Calculate the expected number of Cases/nonCases for each row of X
+  ##  * adjustment if the phase I sample is a case-control sample (of size NI=c(N0,N1))
+  ##
+  Xexp <- expandCatX(X)
+  piY  <- expit(as.vector(Xexp %*% betaTruth))
+  N0k <- N * (1-piY)
+  N1k <- N * piY
+	if(cohort == FALSE)
+	{
+	  N0k <- N0k * NI[1]/sum(N0k)
+	  N1k <- N1k * NI[2]/sum(N1k)
+	}
+  popn <- as.data.frame(cbind(X, N0k, N1k))
+ 
+  
+  ## Phase I counts for the given stratification
+  ##  * if strata = 'NULL' just return the population
+  ##
+  if(is.null(strata))
+		strata <- 2:ncol(X)
+	strata <- rev(sort(strata))  ## Need to reverse the ordering b/c of the way aggregate totals across the variables within 'strata'
+	##
+	aggCall <- paste("aggregate(popn$N0k, list(", paste("popn[,",strata,"]", sep="", collapse=", "), "), FUN=sum)", sep="")
+	phaseI  <- eval(parse(text=aggCall))
+	names(phaseI) <- c(names(X)[strata], "N0k")
+	aggCall <- paste("aggregate(popn$N1k, list(", paste("popn[,",strata,"]", sep="", collapse=", "), "), FUN=sum)$x", sep="")
+	phaseI$N1k <- eval(parse(text=aggCall))
+  ##
+  phaseI[,1:length(strata)] <- phaseI[,length(strata):1]  ## Reverse back again; note the colnames don't reverse so it done in the next loop
+  ##
+  for(i in 1:nrow(phaseI))
+  	rownames(phaseI)[i] <- paste(colnames(phaseI)[length(strata):1], "=", phaseI[i, 1:length(strata)], " ", collapse = " ")
+  phaseI <- round(phaseI[,-c(1:length(strata))])
+	##
+	cat("Expected Phase I counts:\n")
+	print(phaseI)	
+ 
+  ##
+  if(!is.null(nII0) && !is.null(nII1))
+  {
+  	##
+  	K <- prod(unlist(lapply(apply(X[,c(1,strata)], 2, unique), FUN=length)))
+    if(length(nII0) != K | length(nII1) != K)
+    	stop("* invalid dimension of 'nII0' or 'nII1'")
+		##
+		if((sum(phaseI[,1] < nII0) > 0) | (sum(phaseI[,2] < nII1) > 0))
+			cat("\nWarning: At least one Phase I stratum does not have sufficiently many non-cases or cases\n\n")
+
+		## Phase II counts
+		##
+		phaseII <- phaseI
+		phaseII[,1] <- pmin(phaseI[,1], nII0)
+		phaseII[,2] <- pmin(phaseI[,2], nII1)
+		colnames(phaseII) <- c("nII0k", "nII1k")
+		
+		## Sampling probabilities
+		##
+		phaseIIprob <- phaseII/phaseI
+		colnames(phaseIIprob) <- c("p0k", "p1k")		
+		if(is.null(digits))
+			digits <- max(-log10(phaseIIprob)) + 2
+		phaseIIprob <- round(phaseIIprob, digits=digits)
+		
+		##
+		cat("\nPhase II sample size:\n")
+		print(phaseII)
+		cat("\nExpected Phase II sampling probabilities:\n")
+		print(phaseIIprob)
   }
-  n.col <- ncol(X)
-  n.lev <- numeric((n.col - 1))
-  for (i in 1:(n.col - 1)) {
-    n.lev[i] <- length(unique(X[, (i + 1)]))
-  }
-  n.lev.cum <- c(0, cumsum(n.lev - 1))
-  if (length(beta) != rev(n.lev.cum + 1)[1]) {
-    print("Error: invalid dimension of 'beta'")
-    return(-1)
-  }
-  P <- mat.or.vec(nc = n.col, nr = nrow(X))
-  for (i in 2:n.col) {
-    for (j in 1:(n.lev[(i - 1)] - 1)) {
-      P[X[, i] == j, i] <- beta[(1 + n.lev.cum[(i - 1)] + 
-           j)]
-    }
-  }
-  P[, 1] <- beta[1]
-  prob <- exp(rowSums(P))/(1 + exp(rowSums(P)))
-  exp.death <- round(N * prob)
-  exp.alive <- N - exp.death
-  if (is.null(strata)) {
-    nrows <- nrow(X)
-    phaseI <- mat.or.vec(nc = 2, nr = nrows)
-    colnames(phaseI) <- c("Y=0", "Y=1")
-    rownames(phaseI) <- rep(times = nrows, "a")
-    if(!is.null(NI)){
-      exp.alive <- round(exp.alive/sum(N)*NI[1])
-      exp.death <- round(exp.death/sum(N)*NI[2])
-    }
-    phaseI[, 1] <- exp.alive
-    phaseI[, 2] <- exp.death
-    for (i in 1:nrows) {
-      rownames(phaseI)[i] <- as.character(paste(colnames(X[,2:ncol(X)]), "=", X[i, 2:ncol(X)], " ", collapse = " "))
-    }
-    cat("Expected Phase I:\n")
-    print(phaseI, digits = digits)
-    cat("\n")
-    if (!is.null(n0)) {
-      print("Warning: 'strata' is NULL")
-      if (is.null(n1)) {
-        print("Warning: 'n1' is NULL")
-      }
-    }
-    else if (!is.null(n1)) {
-      print("Warning: 'strata' is NULL")
-      print("Warning: 'n0' is NULL")
-    }
-    invisible()
-  }
-  else {
-    if (length(intersect(strata, 1:ncol(X))) == 0) {
-      print("Error: 'strata' is invalid")
-      invisible()
-    }
-    strata <- sort(strata)
-    st.ind <- X[, strata[1]]
-    if (strata[1] != 1) {
-      if (length(strata) > 1) {
-        j <- 1
-        if (n.lev[(strata[1] - 1)] > 9) {
-            st.ind <- st.ind * 10
-            j <- 2
-          }
-        for (i in 2:length(strata)) {
-          if (n.lev[(strata[i] - 1)] > 9) 
-            j <- j + 1
-          st.ind <- st.ind + 10^j * X[, strata[i]]
-          j <- j + 1
-        }
-      }
-    }
-    temp <- st.ind
-    lev <- unique(sort(st.ind))
-    lev <- lev[order(strReverse(as.character(lev)))]
-    for (i in 1:length(lev)) st.ind[temp == lev[i]] <- i
-    nrows <- prod(n.lev[(strata - 1)])
-    phaseI <- mat.or.vec(nc = 2, nr = nrows)
-    colnames(phaseI) <- c("Y=0", "Y=1")
-    rownames(phaseI) <- rep(times = nrows, "a")
-    if (length(strata) > 1) {
-      mat.st.ind <- mat.or.vec(nr = nrows, nc = length(strata))
-      colnames(mat.st.ind) <- colnames(X)[strata]
-      lev.length <- n.lev[(strata[1] - 1)]
-      n.rep <- nrows/lev.length
-      n.lev.st <- n.lev[(strata - 1)]
-      for (i in 1:length(strata)) {
-        s <- NULL
-        for (j in 1:n.lev[(strata[i] - 1)]) {
-          s <- c(s, rep(times = n.rep, j - 1))
-        }
-        lev.length <- length(s)
-        if (i != length(strata)) {
-          n.rep <- n.rep/n.lev.st[(i + 1)]
-        }
-        mat.st.ind[, i] <- rep(times = nrows/lev.length, 
-                               s)
-      }
-      for (i in 1:nrows) {
-        rownames(phaseI)[i] <- as.character(paste(colnames(mat.st.ind), 
-                                                  "=", mat.st.ind[i, ], " ", collapse = " "))
-      }
-    }else{
-      for (i in 1:nrows) {
-        rownames(phaseI)[i] <- as.character(paste(colnames(X)[strata], 
-                                                    "=", i))
-      }
-    }
-    for (i in 1:nrows) {
-      phaseI[i, 1] <- sum(exp.alive[st.ind == i])
-      phaseI[i, 2] <- sum(exp.death[st.ind == i])
-      
-    }
-    if(!is.null(NI)){
-      phaseI[,1] <- round(phaseI[,1]/sum(phaseI[,1])*NI[1])
-      phaseI[,2] <- round(phaseI[,2]/sum(phaseI[,2])*NI[2])
-    }        
-    cat("Expected Phase I:\n")
-    print(phaseI, digits = digits)
-    cat("\n")
-    if (!is.null(n0) && !is.null(n1)) {
-      n.st <- 1
-      for (i in 1:length(strata)) {
-        n.st <- n.st * length(unique(X[, strata[i]]))
-      }
-      if (length(n0) != n.st) {
-        print("Error: invalid dimension of 'n0'")
-        return(-1)
-      }
-      if (length(n1) != n.st) {
-        print("Error: invalid dimension of 'n1'")
-        return(-1)
-      }
-      rm(n.st)
-      phaseII <- phaseI
-      ##phaseII[, 1] <- n0
-      ##phaseII[, 2] <- n1
-      for(i in 1:nrow(phaseII)){
-        phaseII[i,1] <- min(phaseI[i,1],n0[i])
-        phaseII[i,2] <- min(phaseI[i,2],n1[i])
-      }         
-      a <- min(phaseII/phaseI)
-      for (i in 1:100) {
-        if (10^(-i) < a) 
-          break
-      }
-      if (is.null(digits)) {
-        digits <- i + 2
-      }
-      phaseIIProb <- round(phaseII/phaseI, digits = digits)
-      cat("Phase II:\n")
-      print(phaseII, digits = digits)
-      cat("\n")
-      cat("Expected Phase II sampling probabilities:\n")
-      print(round(phaseIIProb, digits = digits))
-      cat("\n")
-      for (i in 1:nrow(phaseI)) {
-        if (phaseI[i, 1] < phaseII[i, 1]) {
-          cat("Warning: strata", rownames(phaseI)[i], 
-              "does not have enough controls\n")
-        }
-        if (phaseI[i, 2] < phaseII[i, 2]) {
-          cat("Warning: strata", rownames(phaseI)[i], 
-              "does not have enough cases\n")
-        }
-      }
-      invisible()
-    }
-    if (is.null(n0)) {
-      print("Warning: 'n0' is NULL")
-    }
-    if (is.null(n1)) {
-      print("Warning: 'n1' is NULL")
-    }
-  }
+  	
+  ##
   invisible()
 }
 

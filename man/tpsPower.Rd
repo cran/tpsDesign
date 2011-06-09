@@ -1,5 +1,5 @@
 \name{tpsPower}
-\Rdversion{1.2}
+\Rdversion{1.3}
 \alias{tpsPower}
 \title{
 	Simulation-based estimation of power for the two-phase study design
@@ -9,7 +9,7 @@
 }
 \usage{
 tpsPower(B=1000, betaTruth, X, N, strata, nII, alpha=0.05,
-         threshold=c(-Inf, Inf), digits=NULL, betaNames=NULL,
+         digits=1, betaNames=NULL,
          monitor=NULL, cohort=TRUE, NI=NULL)
 }
 \arguments{
@@ -20,7 +20,7 @@ tpsPower(B=1000, betaTruth, X, N, strata, nII, alpha=0.05,
     Regression coefficients from the logistic regression model.
   }
   \item{X}{
-    Design matrix for the logistic regression model. The first column should correspond to intercept. For each exposure, the baseline group should be coded as 0, the first level as 1, and so on. The number of levels cannot exceed 100.
+    Design matrix for the logistic regression model. The first column should correspond to intercept. For each exposure, the baseline group should be coded as 0, the first level as 1, and so on.
   }
   \item{N}{
     A numeric vector providing the sample size for each row of the design matrix, \code{X}.
@@ -33,9 +33,6 @@ tpsPower(B=1000, betaTruth, X, N, strata, nII, alpha=0.05,
   }
   \item{alpha}{
     Type I error rate assumed for the evaluation of coverage probabilities and power.
-  }
-  \item{threshold}{
-    An interval that specifies truncation of the Monte Carlo sampling distribution of each estimator.
   }
   \item{digits}{
     Integer indicating the precision to be used for the output.
@@ -75,11 +72,11 @@ of \code{beta}:
 }
 \value{
   \code{tpsPower()} returns an object of class "tpsPower", a list containing all the input arguments, as well as the following components:
-    \item{power}{
+    \item{betaPower}{
     	Power against the null hypothesis that the regression coefficient is zero for a Wald-based test with an \code{alpha} type I error rate.
     }
-    \item{na}{
-    	A matrix consisting of the number of datasets excluded from the power calculations (i.e. set to \code{NA}), for each simulation performed. The three reasons are: (1) lack of convergence indicated by \code{NA} point estimates returned by \code{\link{glm}} or \code{\link{tps}}, (2) lack of convergence indicated by \code{NA} standard error point estimates returned by \code{\link{glm}} or \code{\link{tps}}, (3) exclusion on the basis of the \code{threshold} argument.
+    \item{failed}{
+    	A vector consisting of the number of datasets excluded from the power calculations (i.e. set to \code{NA}), for each simulation performed. For power calculations, the two reasons are: (1) lack of convergence indicated by \code{NA} point estimates returned by \code{\link{glm}} or \code{\link{tps}}, (2) lack of convergence indicated by \code{NA} standard error point estimates returned by \code{\link{glm}} or \code{\link{tps}}.
     }
 }
 \note{
@@ -93,7 +90,7 @@ of \code{beta}:
 	Breslow, N. and Chatterjee, N. (1999) "Design and analysis of two phase studies with binary outcome applied to Wilms tumour prognosis." Applied Statistics 48:457-468.
 }
 \author{
-  Takumi Saegusa, Sebastien Haneuse
+  Sebastien Haneuse, Takumi Saegusa
 }
 \seealso{
   \code{\link{plotPower}}.
@@ -109,23 +106,27 @@ fitM <- glm(cbind(Death, N-Death) ~ factor(Age) + Sex + Race, data=Ohio,
 betaNamesM <- c("Int", "Age1", "Age2", "Sex", "Race")
 
 ## Power for the TPS design where phase I stratification is based on Race.
-
-\dontrun{tpsResult1 <- tpsPower(B=1000, beta=fitM$coef, X=XM, N=Ohio$N, strata=4,
+##
+\dontrun{
+tpsResult1 <- tpsPower(B=1000, beta=fitM$coef, X=XM, N=Ohio$N, strata=4,
                        nII=seq(from=100, to=1000, by=100),
                        betaNames=betaNamesM, monitor=100)
-tpsResult1
-}
+tpsResult1}
+
 ## Power for the TPS design where phase I stratification is based on Age
 ##   * consider the setting where the age coefficients are halved from
 ##     their observed true values
 ##   * the intercept is modified, accordingly, using the beta0() function
+##
 newBetaM      <- fitM$coef
 newBetaM[2:3] <- newBetaM[2:3] / 2
 newBetaM[1]   <- beta0(betaX=newBetaM[-1], X=XM, N=Ohio$N,
                        rhoY=sum(Ohio$Death)/sum(Ohio$N))
-\dontrun{tpsResult2 <- tpsPower(B=1000, beta=fitM$coef, X=XM, N=Ohio$N, strata=2,
+##
+\dontrun{
+tpsResult2 <- tpsPower(B=1000, beta=fitM$coef, X=XM, N=Ohio$N, strata=2,
                        nII=seq(from=100, to=500, by=50),
                        betaNames=betaNamesM, monitor=100)
-tpsResult2
-}}
+tpsResult2}
+}
 

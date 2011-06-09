@@ -1,5 +1,5 @@
 \name{plotPower}
-\Rdversion{1.2}
+\Rdversion{1.3}
 \alias{plotPower}
 \title{
   Plot function for power, based on two-phase and case-control design
@@ -9,7 +9,7 @@
 }
 \usage{
 plotPower(x, coefNum=1, include="All", yAxis=seq(from=0, to=100, by=20),
-             xAxis=NULL, main=NULL, legendXY=NULL)
+          xAxis=NULL, main=NULL, legendXY=NULL)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -55,15 +55,16 @@ fitM <- glm(cbind(Death, N-Death) ~ factor(Age) + Sex + Race, data=Ohio,
 betaNamesM <- c("Int", "Age1", "Age2", "Sex", "Race")
 
 ## Power for the TPS design where phase I stratification is based on Age
+##
 newBetaM      <- fitM$coef
 newBetaM[2:3] <- newBetaM[2:3] / 2
-
+##
 \dontrun{
 powerRaceTPS <- tpsPower(B=10000, betaTruth=fitM$coef, X=XM, N=Ohio$N,
                     strata=4,
                     nII=seq(from=100, to=1000, by=100),
 		 betaNames=c("Int", "Age1", "Age2", "Sex", "Race"), monitor=1000)
-
+##
 par(mfrow=c(2,2))
 plotPower(powerRaceTPS, include="TPS", coefNum=2,
           xAxis=seq(from=100, to=1000, by=100),
@@ -78,10 +79,9 @@ plotPower(powerRaceTPS, include="WL", coefNum=2,
           main=expression("Age effect (65-74 vs. 55-64 years), " * beta[A1]),
           legendXY=c(800, 65))
 plotPower(powerRaceTPS, include="CC", coefNum=2,
-        xAxis=seq(from=100, to=1000, by=100),
-        main=expression("Age effect (65-74 vs. 55-64 years), " * beta[A1]),
-        legendXY=c(800, 65))
-}
+          xAxis=seq(from=100, to=1000, by=100),
+          main=expression("Age effect (65-74 vs. 55-64 years), " * beta[A1]),
+          legendXY=c(800, 65))}
 
 ## Power 
 ##
@@ -89,7 +89,7 @@ plotPower(powerRaceTPS, include="CC", coefNum=2,
 ccResult <- ccPower(B=1000, betaTruth=newBetaM, X=XM, N=Ohio$N, r=0.5,
                     nCC=seq(from=100, to=500, by=50), betaNames=betaNamesM,
                     monitor=100)
-
+##
 par(mfrow=c(2,2))
 plotPower(ccResult, coefNum=2, yAxis=seq(from=0, to=100, by=20),
             xAxis=seq(from=100, to=500, by=100),
@@ -102,8 +102,7 @@ plotPower(ccResult, coefNum=4, yAxis=seq(from=0, to=100, by=20),
             main=expression("Sex effect, " * beta[S]))
 plotPower(ccResult, coefNum=5, yAxis=seq(from=0, to=100, by=20),
             xAxis=seq(from=100, to=500, by=100),
-            main=expression("Race effect, " * beta[R]))
-}
+            main=expression("Race effect, " * beta[R]))}
 }
 
 

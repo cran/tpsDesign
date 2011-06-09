@@ -1,270 +1,172 @@
 tpsPower <-
-function(B=1000,betaTruth,X,N,strata,nII,alpha=.05,
-                     threshold=c(-Inf,Inf),digits=NULL,
-                     betaNames=NULL,monitor=NULL,
-                     cohort=TRUE, NI=NULL){
+function(B=1000,
+										 betaTruth,
+										 X,
+										 N,
+										 strata,
+										 nII,
+										 alpha=0.05,
+                     digits=1,
+                     betaNames=NULL,
+                     monitor=NULL,
+                     cohort=TRUE,
+                     NI=NULL)
+{
+	## Checks
+	##
+	problem <- coreChecks(betaTruth=betaTruth, X=X, N=N, betaNames=betaNames)
+	if(problem != "")
+		stop(problem)
+ 	##
+	problem <- tpsChecks(X=X, strata=strata, nII=nII, cohort=cohort, NI=NI)
+	if(problem != "")
+		stop(problem)
+ 	##
+  if(is.null(colnames(X)))
+  	colnames(X) <- c("Int", paste("V", 1:(ncol(X) - 1), sep = ""))
+	if(is.null(monitor))
+		monitor <- B + 1
 
-  beta <- betaTruth
-  ##possible errors
-  if(min(N,nII)<0){
-    print("Error: sample size is not positive")
-    return(-1)
-  }
-  if(max(nII)>sum(N)){
-    print("Error: one of 'nII' is more than sample size at phase I")
-    return(-1)
-  }
-  if(min(X)<0)print("Error: invalid design matrix 'X'")
-  
-  if(length(N)!=nrow(X)){
-    print("Error: invalid dimensions of 'N' and 'X'")
-    return(-1)
-  }
-  if(cohort!=TRUE){
-    if(is.null(NI)){
-      print("Error: Phase I case-control sample size is not specified")
-      return(-1)
-    }
-    if(length(NI)!=2){
-      print("Error: 'NI' is a pair of Phase I sample sizes for controls and cases")
-      return(-1)
-    }
-    if(min(NI)<0){
-      print("Error: sample size is not positive")
-      return(-1)
-    }
-  } 
+	## Expanded design matrix, outcome probabilities and formulae for glm() and tps() calls
+  ##
+  Xexp <- as.data.frame(expandCatX(X))
+  if(!is.null(betaNames))
+  	names(Xexp) <- betaNames
+  piY <- expit(as.vector(as.matrix(Xexp) %*% betaTruth))
+	formCD  <- as.formula(paste("cbind(N1, N0) ~", paste(colnames(Xexp)[-1], collapse=" + ", sep="")))
+	formTPS <- as.formula(paste("cbind(n1, n0) ~", paste(colnames(Xexp)[-1], collapse=" + ", sep="")))
 
-  ## case-control option
-  if(cohort!=TRUE){
-    if(length(NI)!=2){
-      print("Error: 'NI' is a pair of Phase I sample sizes for controls and cases")
-      return(-1)
-    }
-    if(min(NI)<0){
-      print("Error: sample size is not positive")
-      return(-1)
-    }
-    if(is.null(NI[1])){
-      print("Warning: Phase I case-control sample size is not specified")
-      cohort <- TRUE
-    }
-  } 
-  if(!is.null(NI[1])&cohort==TRUE){
-    print("Warning: 'cohort' option was chosen")
-  }
+	## Phase I stratification variable
+	##
+	Xexp$S <- stratify(X, strata)
+	K      <- length(unique(Xexp$S))
 
-  
-  ## valid beta
-  nlevs <- 1
-  for(i in 1 : (ncol(X)-1) ){
-    nlevs <- c(nlevs,length(unique(X[ , (i+1)] ))-1)
-  }
-  if(length(beta)!=sum(nlevs)){
-    print("Error: invalid dimension of 'beta'")
-    return(-1)
-  }
-  
-  if(!is.null(threshold[1])){
-    if(length(threshold)!=2){
-      print("Error: 'threshold' is not a pair of numbers")
-    }
-  }
+	## Run simulation
+	##
+	lenII    <- length(nII)
+  nDesigns <- 1 + (4*lenII)                                      ## CD plus (CC, WL, PL, ML) for each value of NII
+  p        <- length(betaTruth)
+	waldTest <- array(NA, dim=c(B, nDesigns, p))
+  cat(paste(1+(2*lenII), "designs will be simulated\n"))
+	##
+	for(b in 1:B)
+	{
+		##
+    if((b %% monitor) == 0)
+      cat("Repetition", b, "of", B, "complete\n")
+    
+		## Complete data study design
+		##
+		Xexp$N1 <- rbinom(nrow(Xexp), N, piY)
+		Xexp$N0 <- N - Xexp$N1
+		fitCD   <- summary(glm(formCD, data=Xexp, family=binomial()))$coef
+		waldTest[b,1,] <- (fitCD[,4] < alpha)
+		
+		
+		##
+   	op <- options()
+		##
+		for(i in 1:lenII)
+		{
+			## Case-control study design
+	    ##
+  		n0 <- round(nII[i] * 0.5)
+  		n1 <- round(nII[i] * 0.5)
+			##
+			Xexp$n0 <- rmvhyper(Xexp$N0, n0)
+			Xexp$n1 <- rmvhyper(Xexp$N1, n1)
+			##
+			index <- 1 + i + (0*lenII)
+			fitCC <- try(glm(formTPS, data=Xexp, family=binomial()), silent=TRUE)
+			if(class(fitCC)[1] == "glm")
+			{
+				fitCC <- summary(fitCC)$coef
+				if(nrow(fitCC) == p)
+					waldTest[b,index,] <- c(FALSE, (fitCC[-1,4] < alpha))
+			}
 
-  ## check betaNames
-  if(!is.null(betaNames[1])){
-    if(length(beta)!=length(betaNames)){
-      print("Error: 'beta' and 'betaNames' are not of the same length")
-      return(-1)
-    }
-    if(!is.character(betaNames)){
-      print("Error: elements of 'betaNames' are not character")
-      return(-1)
-    }
-  }
-
-  ## variable names, beta names
-  if(!is.null(colnames(X))){
-    var.name <- colnames(X)[-1]
-    if(is.null(betaNames)){
-      if(is.null(names(beta))){
-        betaNames <- "Intercept"
-        for(i in 2:ncol(X)){
-          betaNames <- c(betaNames,paste("(",var.name[i-1],".",1:nlevs[i],")", sep=""))
-        }
-        names(beta) <- betaNames
-      }else{
-        betaNames <- names(beta)
-      }
-    }
-  }else{
-    colnames(X) <- c("Intercept",paste("V", 1:(ncol(X)-1), sep=""))
-    var.name <- colnames(X)[-1]
-    if(is.null(betaNames)){
-      if(is.null(names(beta))){
-        betaNames <- "Intercept"
-        var.name2 <- paste("(V", 1:(ncol(X)-1),")", sep="")
-        for(i in 2:ncol(X)){
-          betaNames <- c(betaNames,paste(var.name[i-1],".",1:nlevs[i], sep=""))
-        }
-        names(beta) <- betaNames
-      }else{
-        betaNames <- names(beta)
-      }
-    }
-  }
-  
-
-  if(length(intersect(strata,1:ncol(X)))==0){
-    print("Error: 'strata' is invalid")
-    return(-1)
-  }
-  
-  if(length(strata)==1& strata[1]==1){
-    print("Error: Use 'ccPower' for case control design")
-    return(-1)
-  }
-
-  ##check monitor
-  if(is.null(monitor)){
-    monitor <- B+1
-  }else{
-    monitor <- as.integer(monitor)
-    if(monitor<0){
-      print("Error: 'monitor' is not a positive number")
-      return(-1)
-    }
-  }
-
-  result <- NULL
-  result1 <- NULL
-  result2 <- NULL
-  
-  nII <- sort(nII)
-  num.nii <- length(nII)
-  beta.0.ind <- which(beta==0)
-  
-  #1st design
-  num.grp <- 1
-  num.strata <- length(strata)
-  for(j in 1:num.strata){
-    num.grp <- num.grp*length(unique(X[,strata[j]]))
-  }
-  n0 <- round(rep(nII[1]/2,times=num.grp)/num.grp)
-  n1 <- round(rep(nII[1]/2,times=num.grp)/num.grp)
-  print(paste("There are",num.nii,"two-phase designs to simulate"))     
-  result1 <- tpsSim(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,digits=digits,betaNames=betaNames,monitor=monitor,cohort=cohort,NI=NI)
-  print("Design 1 complete")
-  if(num.nii==1){
-    output <- NULL
-    output$B <- result1$B
-    output$beta <- result1$beta
-    output$X <- result1$X
-    output$N <- result1$N
-    output$strata <- result1$strata
-    output$nII <- as.numeric(nII)
-    output$alpha <- result1$alpha
-    output$threshold <- result1$threshold
-    if(is.null(digits)){
-      output$digits <- 0
-    }else{
-      output$digits <- result1$digits
-    }
-    output$power <- result1$power
-    output$na <- result1$na
-    class(output) <- "tpsPower"
-    return(output)
-  }
-  
-  #2nd design
-  n0 <- round(rep(nII[2]/2,times=num.grp)/num.grp)
-  n1 <- round(rep(nII[2]/2,times=num.grp)/num.grp)
-  result2 <- tpsSim(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,digits=digits,betaNames=betaNames,monitor=monitor,cohort=cohort,NI=NI)
-  print("Design 2 complete")
-  result <- list(result1,result2)
-  
-  if(num.nii > 2){
-    for(i in 3:num.nii){
-      n0 <- round(rep(nII[i]/2,times=num.grp)/num.grp)
-      n1 <- round(rep(nII[i]/2,times=num.grp)/num.grp)
-      result[[i]] <- tpsSim(B=B,betaTruth=beta,X=X,N=N,strata=strata,n0=n0,n1=n1,alpha=alpha,threshold=threshold,digits=digits,betaNames=betaNames,monitor=monitor,cohort=cohort,NI=NI)
-      print(paste("Design",i,"complete."))
-    }
-  }
-
-  colname <- betaNames
-  rowname <- c("CD",rep(c(" CC"," WL"," PL"," ML"),times=num.nii))
-
-  max.numnii <- max(nchar(nII))
-  spc <- NULL
-  for(i in 1:max.numnii){
-    spc <- paste(spc," ", sep="")
-  }
-  for(i in 1:num.nii){
-    for(j in 1:(max.numnii-1)){
-      if(nchar(nII[i])==j){
-        for(k in 1:(max.numnii-j)){
-          nII[i] <- paste(nII[i]," ",sep="")
-        }
-        break
-      }
-    }
-  }   
-  j <- 1
-  for(i in 1:(num.nii*4)){
-    if(i%%4==1){
-      rowname[(i+1)] <- paste(nII[j],rowname[(i+1)],sep="")
-      j <- j+1
-    }else{
-      rowname[(i+1)] <- paste(spc,rowname[(i+1)],sep="")
-    }
-  }
-  
-  ## Power
-  matrix.power <- NULL
-  matrix.power <- result[[1]]$power
-  for(i in 2:num.nii){
-    matrix.power <- rbind(matrix.power,result[[i]]$power[-1,])
-  } 
-  rownames(matrix.power) <- rowname
-  if(length(beta.0.ind)==0){
-    colnames(matrix.power) <- colname
-  }else{
-    colnames(matrix.power) <- colname[-beta.0.ind]
-  }  
-  ##NAs
-  matrix.na <- NULL
-  matrix.na <- result[[1]]$na
-  for(i in 2:num.nii){
-    matrix.na <- cbind(matrix.na,result[[i]]$na[,-1])
-  } 
-  matrix.na <- t(matrix.na)
-  colnames(matrix.na) <- c("Point Estimate","Above Threshold","Standard Deviation")
-  rownames(matrix.na) <- rowname
-
-  output <- NULL
-  output$B <- B
-  output$beta <- beta
-  output$X <- X
-  output$N <- N
-  output$strata <- strata
-  output$nII <- as.numeric(nII)
-  output$cohort <- cohort
-  if(cohort!=TRUE){
-    output$NI <- NI
-  }
-  output$alpha <- alpha
-  output$threshold <- threshold
-  if(is.null(digits)){
-    output$digits <- 0
-  }else{
-    output$digits <- digits
-  }
-  output$power <- matrix.power
-  output$na <- matrix.na
-  
-  class(output) <- "tpsPower"
-  
-  return(output)
+			## Two-phase study design
+			##
+	    ## Phase I counts
+  	  ##
+    	if(cohort == FALSE)
+    	{
+				Xexp$N0 <- rmvhyper(Xexp$N0, NI[1])
+				Xexp$N1 <- rmvhyper(Xexp$N1, NI[2])
+    	}
+   	 	nn0 <- tapply(Xexp$N0, Xexp$S, FUN=sum)
+   		nn1 <- tapply(Xexp$N1, Xexp$S, FUN=sum)
+			##
+  		n0 <- round(nII[i] * 0.5 / K)
+  		n1 <- round(nII[i] * 0.5 / K)
+	    ##
+	    Xexp$n0 <- Xexp$N0
+	    Xexp$n1 <- Xexp$N1
+	    for(k in 1:K)
+	    {
+  	    Xexp$n0[Xexp$S == k] <- rmvhyper(Xexp$N0[Xexp$S == k], n0)
+  	    Xexp$n1[Xexp$S == k] <- rmvhyper(Xexp$N1[Xexp$S == k], n1)
+    	}
+			##
+			index <- 1 + i + (1*lenII)
+    	options(warn=-1)
+    	fitWL <- try(tps(formTPS, Xexp, nn0=nn0, nn1=nn1, Xexp$S, method="WL", cohort=cohort), silent=TRUE)
+    	options(op)
+			if(class(fitWL)[1] == "tps")
+				waldTest[b,index,] <- abs(fitWL$coef/sqrt(diag(fitWL$cove))) > abs(qnorm(alpha/2))
+    	##
+			index <- 1 + i + (2*lenII)
+    	fitPL <- try(tps(formTPS, Xexp, nn0=nn0, nn1=nn1, Xexp$S, method="PL", cohort=cohort), silent=TRUE)
+			if(class(fitPL)[1] == "tps")
+				waldTest[b,index,] <- abs(fitPL$coef/sqrt(diag(fitPL$covm))) > abs(qnorm(alpha/2))
+    	##
+			index <- 1 + i + (3*lenII)
+    	fitML <- try(tps(formTPS, Xexp, nn0=nn0, nn1=nn1, Xexp$S, method="ML", cohort=cohort), silent=TRUE)
+			if(class(fitML)[1] == "tps")
+				waldTest[b,index,] <- abs(fitML$coef/sqrt(diag(fitML$covm))) > abs(qnorm(alpha/2))
+		}
+	}
+	
+	## Error checks for output and evaluate power
+	##
+	if(lenII == 1)
+		colNames <- c("CD  ", "CC  ", "TPS-WL  ", "TPS-PL  ", "TPS-ML  ")
+	if(lenII > 1)
+	{
+		colNames <- "CD"
+		colNames <- c(colNames, paste("CC     nII =", nII[1], " "))
+		for(i in 2:lenII) colNames <- c(colNames, paste("       nII =", nII[i], " "))
+		colNames <- c(colNames, paste("TPS-WL nII =", nII[1], " "))
+		for(i in 2:lenII) colNames <- c(colNames, paste("       nII =", nII[i], " "))
+		colNames <- c(colNames, paste("TPS-PL nII =", nII[1], " "))
+		for(i in 2:lenII) colNames <- c(colNames, paste("       nII =", nII[i], " "))
+		colNames <- c(colNames, paste("TPS-ML nII =", nII[1], " "))
+		for(i in 2:lenII) colNames <- c(colNames, paste("       nII =", nII[i], " "))
+	}
+	##
+	keep    <- apply(is.na(waldTest), c(1,2), sum) == 0
+	results <- evalPower(waldTest, keep, resNames=list(colNames, betaNames))
+	results[results[,1] == 0, 1] <- NA
+	failed <- B - matrix(apply(keep, 2, sum), ncol=1, dimnames=list(rownames(results), ""))
+	
+	## Return object of class 'tpsPower'
+  ##
+  value           <- NULL
+  value$B         <- B
+  value$betaTruth <- betaTruth
+  value$X         <- X
+  value$N         <- N
+  value$strata    <- strata
+  value$nII       <- nII
+  value$alpha     <- alpha
+	value$digits 	  <- digits
+	value$cohort    <- cohort
+	value$NI        <- NI
+  ##
+  value$failed    <- failed
+  value$betaPower <- results
+  ##
+  class(value) <- "tpsPower"
+  return(value)
 }
 

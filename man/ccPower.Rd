@@ -1,5 +1,5 @@
 \name{ccPower}
-\Rdversion{1.2}
+\Rdversion{1.3}
 \alias{ccPower}
 \title{
 	Simulation-based estimation of power for the case-control design
@@ -8,9 +8,8 @@
   Monte Carlo based estimation of statistical power for maximum likelihood estimator (MLE) of the components of a logistic regression model, based on the case-control design.
 }
 \usage{
-ccPower(B=1000, betaTruth, X, N, nCC, r, alpha=0.05,
-        threshold=c(-Inf, Inf), digits=NULL, betaNames=NULL,
-        monitor=NULL, NI=NULL)
+ccPower(B=1000, betaTruth, X, N, nCC, r=1, alpha=0.05,
+        digits=1, betaNames=NULL, monitor=NULL)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -21,7 +20,7 @@ ccPower(B=1000, betaTruth, X, N, nCC, r, alpha=0.05,
     Regression coefficients from the logistic regression model.
 }
   \item{X}{
-    Design matrix for the logistic regression model. The first column should correspond to intercept. For each exposure, the baseline group should be coded as 0, the first level as 1, and so on. The number of levels cannot exceed 100.
+    Design matrix for the logistic regression model. The first column should correspond to intercept. For each exposure, the baseline group should be coded as 0, the first level as 1, and so on.
 }
   \item{N}{
     A numeric vector providing the sample size for each row of the design matrix, \code{X}. 
@@ -35,9 +34,6 @@ ccPower(B=1000, betaTruth, X, N, nCC, r, alpha=0.05,
   \item{alpha}{
     Type I error rate assumed for the evaluation of coverage probabilities and power.
 }
-  \item{threshold}{
-		An interval that specifies truncation of the Monte Carlo sampling distribution of the MLE.
-}
   \item{digits}{
     Integer indicating the precision to be used for the output.
 }
@@ -46,14 +42,7 @@ ccPower(B=1000, betaTruth, X, N, nCC, r, alpha=0.05,
 }
 \item{monitor}{
 	Numeric value indicating how often \code{ccPower()} reports real-time progress on the simulation, as the \code{B} datasets are generated and evaluated. The default of \code{NULL} indicates no output.
-      }
- \item{NI}{
-    A pair of integers providing the outcome-specific phase I sample
-    sizes when the phase I data are drawn as a case-control sample. The
-    first element corresponds to the controls and the second to the
-    cases.
-  }
-     
+      }     
 }
 \details{
 	A simulation study is conducted to evaluate statistical power for the MLE of a logistic regression model, based on the case-control design. The overall simulation approach is the same as that described in \code{\link{ccSim}}. Power is estimated as the proportion of simulated datasets for which a hypothesis test of no effect is rejected. Each hypothesis test is performed using the generic \code{\link{glm}} function.
@@ -66,11 +55,11 @@ ccPower(B=1000, betaTruth, X, N, nCC, r, alpha=0.05,
 }
 \value{
   \code{ccPower()} returns an object of class "ccPower", a list containing all the input arguments, as well as the following components:
-    \item{power}{
+    \item{betaPower}{
     	Power against the null hypothesis that the regression coefficient is zero for a Wald-based test with an \code{alpha} type I error rate.
     }
-    \item{na}{
-    	A matrix consisting of the number of datasets excluded from the power calculations (i.e. set to \code{NA}), for each simulation performed. The three reasons are: (1) lack of convergence indicated by \code{NA} point estimates returned by \code{\link{glm}}, (2) lack of convergence indicated by \code{NA} standard error point estimates returned by \code{\link{glm}}, (3) exclusion on the basis of the \code{threshold} argument.
+    \item{failed}{
+    	A vector consisting of the number of datasets excluded from the power calculations (i.e. set to \code{NA}), for each simulation performed. For power calculations, the two reasons are: (1) lack of convergence indicated by \code{NA} point estimates returned by \code{\link{glm}}, (2) lack of convergence indicated by \code{NA} standard error point estimates returned by \code{\link{glm}}.
     }
 }
 \note{
@@ -82,7 +71,7 @@ ccPower(B=1000, betaTruth, X, N, nCC, r, alpha=0.05,
   Prentice, R. and Pyke, R. (1979) "Logistic disease incidence models and case-control studies." Biometrika 66:403-411.
 }
 \author{
-  Takumi Saegusa, Sebastien Haneuse
+  Sebastien Haneuse, Takumi Saegusa
 }
 \examples{
 ##
@@ -95,28 +84,31 @@ fitM <- glm(cbind(Death, N-Death) ~ factor(Age) + Sex + Race, data=Ohio,
 betaNamesM <- c("Int", "Age1", "Age2", "Sex", "Race")
 
 ## Power for a single CC design
-
-\dontrun{ccResult1 <- ccPower(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, r=1,
+##
+\dontrun{
+ccResult1 <- ccPower(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, r=1,
                      nCC=500, betaNames=betaNamesM)
 ccResult1}
 
 ## Power for the CC design, based on a balanced design with 
 ## various sample sizes
+##
+\dontrun{
+ccResult2 <- ccPower(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, r=1,
+                     nCC=seq(from=100, to=500, by=50), betaNames=betaNamesM)
+ccResult2}
 
-\dontrun{ccResult2 <- ccPower(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, r=1,
-nCC=seq(from=100, to=500, by=50), betaNames=betaNamesM)
-ccResult2
-}
 ## Recalculate power for the setting where the age coefficients are
 ## halved from their observed true values
 ##   * the intercept is modified, accordingly, using the beta0() function
-
+##
 newBetaM      <- fitM$coef
 newBetaM[2:3] <- newBetaM[2:3] / 2
 newBetaM[1]   <- beta0(betaX=newBetaM[-1], X=XM, N=Ohio$N,
 rhoY=sum(Ohio$Death)/sum(Ohio$N))
-
-\dontrun{ccResult3 <- ccPower(B=1000, betaTruth=newBetaM, X=XM, N=Ohio$N,
+##
+\dontrun{
+ccResult3 <- ccPower(B=1000, betaTruth=newBetaM, X=XM, N=Ohio$N,
                      r=1, nCC=seq(from=100, to=500, by=50),
                      betaNames=betaNamesM)
 ccResult3}

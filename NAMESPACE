@@ -1,9 +1,8 @@
 export(beta0, ccPower, ccSim, phaseI, plotPower, rmvhyper, tps, tpsPower, tpsSim)
 
-
-S3method(print,tpsSim)
-S3method(print,ccSim)
-S3method(print,tpsPower)
-S3method(print,ccPower)
+S3method(print, tpsSim)
+S3method(print, ccSim)
+S3method(print, tpsPower)
+S3method(print, ccPower)
 
 

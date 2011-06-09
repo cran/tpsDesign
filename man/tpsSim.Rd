@@ -1,5 +1,5 @@
 \name{tpsSim}
-\Rdversion{1.2}
+\Rdversion{1.3}
 \alias{tpsSim}
 \title{
 Simulation function for two-phase study designs.
@@ -8,10 +8,9 @@ Simulation function for two-phase study designs.
   Monte Carlo based evaluation of operating characteristics for estimators of the components of a logistic regression model, based on the two-phase and case-control study designs (Breslow and Chatterjee, 1999; Prentice and Pykle, 1979).
 }
 \usage{
-tpsSim(B=1000, betaTruth, X, N, strata, n0, n1, nII=NULL,
-       interaction=NULL, ccDesign=NULL, alpha=0.05,
-       threshold=c(-Inf, Inf), digits=NULL, betaNames=NULL,
-       referent=2, monitor=NULL, cohort=TRUE, NI=NULL)
+tpsSim(B=1000, betaTruth, X, N, strata, nII0=NULL, nII1=NULL, nII=NULL,
+       nCC=NULL, alpha=0.05, threshold=c(-Inf, Inf), digits=1, betaNames=NULL,
+       referent=2, monitor=NULL, cohort=TRUE, NI=NULL, returnRaw=FALSE)
 }
 \arguments{
   \item{B}{
@@ -21,7 +20,7 @@ tpsSim(B=1000, betaTruth, X, N, strata, n0, n1, nII=NULL,
     Regression coefficients from the logistic regression model.
   }
   \item{X}{
-    Design matrix for the logistic regression model. The first column should correspond to intercept. For each exposure, the baseline group should be coded as 0, the first level as 1, and so on. The number of levels cannot exceed 100.
+    Design matrix for the logistic regression model. The first column should correspond to intercept. For each exposure, the baseline group should be coded as 0, the first level as 1, and so on.
   }
   \item{N}{
     A numeric vector providing the sample size for each row of the design matrix, \code{X}.
@@ -29,19 +28,16 @@ tpsSim(B=1000, betaTruth, X, N, strata, n0, n1, nII=NULL,
   \item{strata}{
     A numeric vector indicating which columns of the design matrix, \code{X}, are used to form the phase I stratification variable. \code{strata=1} specifies the intercept and is, therefore, equivalent to a case-control study. \code{strata=0} indicates all possible stratified two-phase sampling schemes.
   }
-  \item{n0}{
+  \item{nII0}{
     A numeric vector of sample sizes at phase II for controls. The length must correspond to the number of unique values for the \code{strata} specification.
   }
-  \item{n1}{
+  \item{nII1}{
     A numeric vector of sample sizes at phase II for cases. The length must correspond to the number of unique values for the \code{strata} specification.
   }
   \item{nII}{
     A pair of numbers providing the sample sizes for controls and cases at phase II. This is only used when simulating all stratified two-phase sampling schemes (i.e., \code{strata=0}).
   }
-  \item{interaction}{
-    A vector indicating which columns of the design matrix, \code{X}, represent the interaction terms in the underlying logistic regression model of interest. When \code{strata=0}, \code{tpsSim()} does not use the corresponding columns specified by \code{interaction} for stratification. If certain covariates are not of interest for stratification, then indicating corresponding columns in \code{interaction} exclude such designs.
-  }
-  \item{ccDesign}{
+  \item{nCC}{
     A pair of sample sizes at phase II for controls and cases in a case-control design. If left \code{NULL}, the values case-control sample sizes are taken as the sums of \code{n1} and \code{n0}, respectively.
   }
   \item{alpha}{
@@ -61,7 +57,7 @@ tpsSim(B=1000, betaTruth, X, N, strata, n0, n1, nII=NULL,
     An numeric value specifying which estimator is taken as the referent (denominator) for the relative uncertainty calculation. 1=CD, 2=CC, 3=WL, 4=PL, 5=ML (see Details below).
   }
   \item{monitor}{
-    Numeric value indicating how often \code{tpsPower()} reports real-time progress on the simulation, as the \code{B} datasets are generated and evaluated. The default of \code{NULL} indicates no output.
+    Numeric value indicating how often \code{tpsSim()} reports real-time progress on the simulation, as the \code{B} datasets are generated and evaluated. The default of \code{NULL} indicates no output.
   }
   \item{cohort}{
     Logical flag. TRUE indicates phase I is drawn as a cohort; FALSE indicates phase I is drawn as a case-control sample.
@@ -71,6 +67,9 @@ tpsSim(B=1000, betaTruth, X, N, strata, n0, n1, nII=NULL,
     sizes when the phase I data are drawn as a case-control sample. The
     first element corresponds to the controls and the second to the
     cases.
+  }
+\item{returnRaw}{
+   Logical indicator of whether or not the raw coefficient and standard error estimates for each of the design/estimator combinations should be returned.
   }
 }
 \details{
@@ -104,68 +103,63 @@ characteristics of various designs/estimators for \code{betaTruth}:
 
 }
 \value{
-  \code{tpsSim()} returns an object of class "tpsSim", a list containing all the input arguments, as well as the following components:
-    \item{mean}{
+  \code{tpsSim()} returns an object of class "tpsSim", a list containing all the input arguments, as well list \code{results} with the following components:
+    \item{betaMean}{
     	Mean of the Monte Carlo sampling distribution for each regression coefficient estimator.
     }
-    \item{bias.mean}{
-    	Bias based on the mean, calculated as \code{mean} - \code{betaTruth}. 
+    \item{betaMeanBias}{
+    	Bias based on the mean, calculated as \code{betaMean} - \code{betaTruth}. 
     }
-    \item{pct.bias.mean}{
-    	Percent bias based on mean, calculated as ((\code{mean} - \code{betaTruth}) / \code{betaTruth}) x 100. If a regression coefficient is
+    \item{betaMeanPB}{
+    	Percent bias based on mean, calculated as ((\code{betaMean} - \code{betaTruth}) / \code{betaTruth}) x 100. If a regression coefficient is
       zero, percent bias is not calculated and an NA is returned.
     }
-    \item{median}{
+    \item{betaMedian}{
     	Median of the Monte Carlo sampling distribution for each regression coefficient estimator.
     }  
-    \item{bias.median}{
-    	Bias based on the median, calculated as \code{median} - \code{betaTruth}. 
+    \item{betaMedianBias}{
+    	Bias based on the median, calculated as \code{betaMedian} - \code{betaTruth}. 
     }
-    \item{pct.bias.med}{
-      Percent bias based on median, calculated as
-      ((\code{median} - \code{betaTruth}) / \code{betaTruth}) x 100.
-      If a regression coefficient is zero, median percent bias is not calculated and an NA is returned.
+    \item{betaMedianPB}{
+    	Percent bias based on median, calculated as ((\code{betaMedian} - \code{betaTruth}) / \code{betaTruth}) x 100. If a regression coefficient is
+      zero, median percent bias is not calculated and an NA is returned.
     }
-    \item{sd}{
+    \item{betaSD}{
     	Standard deviation of the Monte Carlo sampling distribution for each regression coefficient estimator.
     }
-    \item{relative.uncertainty}{
-    	relative uncertainty, defined as the ratio of the standard deviation of the Monte Carlo sampling
-    	distribution for each estimator to the standard deviation of the Monte Carlo sampling distribution
-    	for the estimator specified by \code{referent}. The ratio is multiplied by 100.
-    }
-    \item{mean.squared.error}{
+    \item{betaMSE}{
       Mean squared error of the Monte Carlo sampling distribution for each regression coefficient
       estimator.
     }
-    \item{reported.standard.error}{
+    \item{seMean}{
     	Mean of the Monte Carlo sampling distribution for the standard error estimates reported by glm().
     }
-    \item{sd.reported.vs.actual}{
+    \item{seRatio}{
     	Ratio of the mean reported standard error to the standard deviation of the Monte Carlo sampling
-    	distribution for each regression coefficient estimator. The ratio is multiplied by 100.
-    
+    	distribution for each regression coefficient estimator. The ratio is multiplied by 100.    
     }
-    \item{coverage.probability}{
+    \item{betaCP}{
     	Coverage probability for Wald-based confidence intervals, evaluated on the basis of an \code{alpha} type I error rate.
     }
-    \item{power}{
+    \item{betaPower}{
     	Power against the null hypothesis that the regression coefficient is zero for a Wald-based test with an \code{alpha} type I error rate.
     }
-    \item{na}{
-    	A matrix consisting of the number of datasets excluded from the power calculations (i.e. set to \code{NA}), for each simulation performed. The three reasons are: (1) lack of convergence indicated by \code{NA} point estimates returned by \code{\link{glm}}, (2) lack of convergence indicated by \code{NA} standard error point estimates returned by \code{\link{glm}}, (3) exclusion on the basis of the \code{threshold} argument.
+    \item{betaRU}{
+    	The ratio of the standard deviation of the Monte Carlo sampling
+    	distribution for each estimator to the standard deviation of the Monte Carlo sampling distribution
+    	for the estimator corresponding to \code{refDesign}. The ratio is multiplied by 100.
     }
+Also returned is an object \code{failed} which is a vector consisting of the number of datasets excluded from the power calculations (i.e. set to \code{NA}), for each simulation performed. For the evaluation of general operating characteristics, the three reasons are: (1) lack of convergence indicated by \code{NA} point estimates returned by \code{\link{glm}} or \code{\link{tps}}, (2) lack of convergence indicated by \code{NA} standard error point estimates returned by \code{\link{glm}} or \code{\link{tps}}, (3) exclusion on the basis of the \code{threshold} argument.
 }
 \note{
 	A generic print method provides formatted output of the results.
 }
 \references{
-  Prentice, R. and Pyke, R. (1979) "Logistic disease incidence models and case-control studies." Biometrika 66:403-411.
-
-	Breslow, N. and Chatterjee, N. (1999) "Design and analysis of two phase studies with binary outcome applied to Wilms tumour prognosis." Applied Statistics 48:457-468.
+Prentice, R. and Pyke, R. (1979) "Logistic disease incidence models and case-control studies." Biometrika 66:403-411.
+Breslow, N. and Chatterjee, N. (1999) "Design and analysis of two phase studies with binary outcome applied to Wilms tumour prognosis." Applied Statistics 48:457-468.
 }
 \author{
-  Takumi Saegusa, Sebastien Haneuse
+  Sebastien Haneuse, Takumi Saegusa
 }
 \examples{
 ##
@@ -173,6 +167,7 @@ data(Ohio)
 
 ## Design matrix that forms the basis for model and 
 ## phase I strata specification
+##
 XM <- cbind(Int=1, Ohio[,1:3])      ## main effects only
 XI <- cbind(XM, SbyR=XM[,3]*XM[,4]) ## interaction between sex and race
 
@@ -189,40 +184,41 @@ betaNamesI <- c("Int", "Age1", "Age2", "Sex", "Race", "SexRace")
 ## Two-phase design stratified by age
 ##   * sample 50 from each of 6 phase I strata
 ##   * show primary output (% bias, 95% CP, relative uncertainty)
-
-\dontrun{ocAge <- tpsSim(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, strata=2,
-                n0=c(50,50,50), n1=c(50,50,50), betaNames=betaNamesM,
+##
+\dontrun{
+ocAge <- tpsSim(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, strata=2,
+                nII0=c(50,50,50), nII1=c(50,50,50), betaNames=betaNamesM,
                 monitor=100)
-ocAge
-}
+ocAge}
 
 ## All possible balanced two-phase designs
 ##  * 250 controls and 250 cases
 ##  * only show the relative uncertainty output
-
-\dontrun{ocAll <- tpsSim(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, strata=0,
+##
+\dontrun{
+ocAll <- tpsSim(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, strata=0,
                 nII=c(250, 250), betaNames=betaNamesM, monitor=100)
-ocAll
-}
+ocAll}
+
 ## Two-phase design stratified by race
 ##  * balanced solely on outcome
 ##  * only show the relative uncertainty output
-
-\dontrun{ocRace <- tpsSim(B=1000, betaTruth=fitI$coef, X=XI, N=Ohio$N, strata=4,
-                 n0=c(200, 50), n1=c(200, 50), betaNames=betaNamesI,
+##
+\dontrun{
+ocRace <- tpsSim(B=1000, betaTruth=fitI$coef, X=XI, N=Ohio$N, strata=4,
+                 nII0=c(200, 50), nII1=c(200, 50), betaNames=betaNamesI,
                  monitor=100)
-ocRace
-}
+ocRace}
 
 ## Comparison of two case-control designs
 ##  * 240 controls and 260 cases
 ##  * 240 controls and 260 cases
 ##  * only show the relative uncertainty output
-
-\dontrun{ocCC <- tpsSim(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, strata=1,
-               n0=240, n1= 260, ccDesign=c(200,300),
+##
+\dontrun{
+ocCC <- tpsSim(B=1000, betaTruth=fitM$coef, X=XM, N=Ohio$N, strata=1,
+               nII0=240, nII1= 260, ccDesign=c(200,300),
                betaNames=betaNamesM, monitor=100)
-ocCC
-}
+ocCC}
 }
 

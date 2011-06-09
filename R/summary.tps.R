@@ -1,5 +1,5 @@
 summary.tps <-
-function(object)
+function(object, ...)
 {
 	# produces summary from an object of the class "tps"
 	coef <- object$coef

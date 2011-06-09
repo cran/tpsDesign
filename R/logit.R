@@ -1,3 +1,3 @@
 logit <-
-function(p) log(p / (1-p))
+function(p) log(p/(1-p))
 
